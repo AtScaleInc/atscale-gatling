@@ -110,7 +110,7 @@
     </build>
     <dependencies>
         <dependency>
-            <groupId>com.atscale</groupId>
+            <groupId>com.atscale.gatling</groupId>
             <artifactId>atscale-gatling-core</artifactId>
             <version>1.0</version>
         </dependency>
