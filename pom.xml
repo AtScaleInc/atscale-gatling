@@ -111,7 +111,7 @@
     <dependencies>
         <dependency>
             <groupId>com.atscale</groupId>
-            <artifactId>atscale_gatling</artifactId>
+            <artifactId>atscale-gatling-core</artifactId>
             <version>1.0</version>
         </dependency>
         <dependency>

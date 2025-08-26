@@ -35,7 +35,7 @@ public class ClosedStepSimulationExecutor extends SimulationExecutor<ClosedStep>
         t3InjectionSteps.add(new IncrementConcurrentUsersClosedInjectionStep(1, 2, 1, 1, 1));
 
 
-        MavenTaskDto task1 = new MavenTaskDto("Internet Sales XMLA Stepped User Simulation");
+        MavenTaskDto task1 = new MavenTaskDto("Internet Sales XMLA Simulation");
         tasks.add(task1);
         task1.setMavenCommand("gatling:test");
         task1.setSimulationClass("com.atscale.java.xmla.simulations.AtScaleXmlaClosedInjectionStepSimulation");
@@ -43,7 +43,7 @@ public class ClosedStepSimulationExecutor extends SimulationExecutor<ClosedStep>
         task1.addGatlingProperty("atscale.model", "internet_sales");
         task1.addGatlingProperty("atscale.gatling.injection.steps", injectionStepsAsJson(t1InjectionSteps));
 
-        MavenTaskDto task2 = new MavenTaskDto("Internet Sales JDBC Stepped User Simulation");
+        MavenTaskDto task2 = new MavenTaskDto("Internet Sales JDBC Simulation");
         tasks.add(task2);
         task2.setMavenCommand("gatling:test");
         task2.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleClosedInjectionStepSimulation");
@@ -51,7 +51,7 @@ public class ClosedStepSimulationExecutor extends SimulationExecutor<ClosedStep>
         task2.addGatlingProperty("atscale.model", "internet_sales"); // specify the AtScale model to use
         task2.addGatlingProperty("atscale.gatling.injection.steps", injectionStepsAsJson(t2InjectionSteps));
 
-        MavenTaskDto task3 = new MavenTaskDto("TPC-DS JDBC Stepped User Simulation");
+        MavenTaskDto task3 = new MavenTaskDto("TPC-DS JDBC Simulation");
         tasks.add(task3);
         task3.setMavenCommand("gatling:test");
         task3.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleClosedInjectionStepSimulation");
