@@ -15,7 +15,7 @@ Our approach is simple.  We impersonate BI Tools by leveraging Gatling to simula
 
 This is incredibly powerful.  Not only can we run regression tests, but we can easily emulate various user loads by shaping our simulations.
 
-We enable a two step process, which provides an opportunity to modify how queries are extracted or which queries to run:
+We enable a two step process, which provides an opportunity to modify query extracts to perhpas filter which queries to run.  To achieve this goal first we run query extract subsequently we run simulations.
 
 ![img_2.png](img_2.png)
 
