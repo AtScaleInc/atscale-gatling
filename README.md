@@ -16,8 +16,6 @@ Our approach is simple.  We impersonate BI Tools by leveraging Gatling to simula
 This is incredibly powerful.  Not only can we run regression tests, but we can easily emulate various user loads by shaping our simulations.
 
 To get started create a properties file named system.properties in the src/test/resources directory.  The file should be modeled after the example_system.properties file in the same directory.  The properties file should contain the following properties:
-
-This file should contain the following properties:
 1. A list of models
 2. The JDBC URL to connect to the Atscale Postgres Database where system configuration data and query data is stored.  The database is named atscale.
 3. The username and password to connect to the Atscale Postgres Database
@@ -73,7 +71,7 @@ The getSimulationTasks() method returns a list of MavenTaskDto objects.  These d
 There are two types of injection steps: Open Steps and Closed Steps.  Open Steps define user load in terms of users per second.  Closed Steps define user load in terms of a fixed number of users.  For more information refer to the Gatling documentation.
                         
 Open Steps include:
-```declarative
+```
 AtOnceUsersOpenInjectionStep: Injects a specified number of users at once.
 ConstantUsersPerSecOpenInjectionStep: Injects users at a constant rate per second for a given duration.
 NothingForOpenInjectionStep: Pauses injection for a specified duration.  
@@ -83,7 +81,7 @@ StressPeakUsersOpenInjectionStep:  Models a stress peak scenario, where a specif
 ```
 
 Clsosed Steps include:
-```declarative
+```
 ConstantConcurrentUsersClosedInjectionStep: Maintains a constant number of users for a period of time.
 IncrementConcurrentUsersClosedInjectionStep: Gradually increases the number of users in increments over a specified duration.
 RampConcurrentUsersClosedInjectionStep: Starts with a specified number of users and ramps up to a target number over a given duration.
