@@ -15,6 +15,10 @@ Our approach is simple.  We impersonate BI Tools by leveraging Gatling to simula
 
 This is incredibly powerful.  Not only can we run regression tests, but we can easily emulate various user loads by shaping our simulations.
 
+We enable a two step process, which provides an opportunity to modify how queries are extracted or which queries to run:
+
+![img_2.png](img_2.png)
+
 To get started create a properties file named system.properties in the src/test/resources directory.  The file should be modeled after the example_system.properties file in the same directory.  The properties file should contain the following properties:
 1. A list of models
 2. The JDBC URL to connect to the Atscale Postgres Database where system configuration data and query data is stored.  The database is named atscale.
