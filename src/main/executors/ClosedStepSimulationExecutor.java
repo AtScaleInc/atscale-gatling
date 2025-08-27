@@ -1,4 +1,4 @@
-package com.customer.executors;
+package executors;
 
 import com.atscale.java.executors.MavenTaskDto;
 import com.atscale.java.executors.SimulationExecutor;
