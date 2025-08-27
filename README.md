@@ -80,7 +80,7 @@ RampUsersPerSecOpenInjectionStep: Ramps the user injection rate per second betwe
 StressPeakUsersOpenInjectionStep:  Models a stress peak scenario, where a specified number of users are injected at the same time, repeatedly, to simulate a sudden spike in load.
 ```
 
-Clsosed Steps include:
+Closed Steps include:
 ```
 ConstantConcurrentUsersClosedInjectionStep: Maintains a constant number of users for a period of time.
 IncrementConcurrentUsersClosedInjectionStep: Gradually increases the number of users in increments over a specified duration.
@@ -96,4 +96,6 @@ In the pom.xml file we have defined maven executors for the simulations to make 
 ./mvnw clean compile exec:java@openstep-simulation-executor  
 ```
 
+So take a look at the example executors, customize the systems.properties file, and modify the executors to run one or more AtScale models in your environement.
 
+Thank you and let us know what you think.
