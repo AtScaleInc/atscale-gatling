@@ -35,18 +35,24 @@ atscale.model1.jdbc.url=jdbc:postgresql://your_host:your_port/your_catalog
 atscale.model1.jdbc.username=your_keycloak_username
 atscale.model1.jdbc.password=your_keycloak_password
 atscale.model1.jdbc.maxPoolSize=10
+atscale.model_1.jdbc.log.resultset.rows=true
 atscale.model2.jdbc.url=jdbc:postgresql://your_host:your_port/your_catalog
 atscale.model2.jdbc.username=your_keycloak_username
 atscale.model2.jdbc.password=your_keycloak_password
 atscale.model2.jdbc.maxPoolSize=10
+atscale.model_2.jdbc.log.resultset.rows=false
 atscale.model3.jdbc.url=jdbc:postgresql://your_host:your_port/your_catalog
 atscale.model3.jdbc.username=your_keycloak_username
 atscale.model3.jdbc.password=yuor_keycloak_password
 atscale.model3.jdbc.maxPoolSize=10
+atscale.model_3.jdbc.log.resultset.rows=true
 atscale.model1.xmla.url=your_atscale_xmla_url_with_access_token
 atscale.model1.xmla.cube=cube_name_for_model1
 atscale.model1.xmla.catalog=catalog_name_for_model1
+atscale.model1.xmla.log.responsebody=true
 ```  
+
+Optionally enable logging of result sets and XMLA response bodies.  Logging uses async logging defined in the logback.xml file.
 
 Run this command to extract queries from the Atscale database into a files:
 ```shell
