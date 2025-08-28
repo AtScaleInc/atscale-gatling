@@ -22,7 +22,6 @@
     </properties>
     <build>
         <sourceDirectory>src/main</sourceDirectory>
-        <testSourceDirectory>src/test</testSourceDirectory>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -133,18 +132,6 @@
             <artifactId>scalatest_2.13</artifactId>
             <version>3.2.18</version>
             <scope>test</scope>
-        </dependency>
-        <!-- For Gatling load simulations, we only need this single dependency -->
-        <dependency>
-            <groupId>io.gatling.highcharts</groupId>
-            <artifactId>gatling-charts-highcharts</artifactId>
-            <version>${gatling.version}</version>
-        </dependency>
-        <!-- For JDBC load simulations, we need to add the jdbc plugin -->
-        <dependency>
-            <groupId>org.galaxio</groupId>
-            <artifactId>gatling-jdbc-plugin_2.13</artifactId>
-            <version>0.13.0-latest</version>
         </dependency>
         <!-- For AtScale JDBC Interface -->
         <dependency>
