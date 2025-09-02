@@ -3,6 +3,8 @@ Overview
 
 Gatling test harness for AtScale. Uses the atscale-gatling-core library to run regression, load, and performance tests.
 
+Project uses the open jdk temurin-21.
+
 This project is intended to be a simple way to run Gatling tests against AtScale.  It uses the atscale-gatling-core library to do the heavy lifting: https://github.com/AtScaleInc/atscale-gatling-core  This project is much simpler than atscale-gatling-core and is easier to extend and modify.  It is intended to be a starting point for users who want to build their own Gatling test harness for AtScale.
 
 Let us put this into context.  A simplified AtScale architecture is shown below:
