@@ -27,7 +27,7 @@ public class OpenStepSimulationExecutor extends SimulationExecutor<OpenStep> {
         List<MavenTaskDto> tasks = new ArrayList<>();
 
         List<OpenStep> t1InjectionSteps = new ArrayList<>();
-        t1InjectionSteps.add(new AtOnceUsersOpenInjectionStep(5));
+        t1InjectionSteps.add(new AtOnceUsersOpenInjectionStep(2));
 
         List<OpenStep> t2InjectionSteps = new ArrayList<>();
         t2InjectionSteps.add(new AtOnceUsersOpenInjectionStep(2));
