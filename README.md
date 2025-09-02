@@ -22,8 +22,8 @@ We enable a two step process, which provides an opportunity to modify query extr
 The simulations consume the query extracts and run them against the AtScale Engine.  They produce results in the form of Gatling HTML reports and run_logs.
 
 
-To get started create a properties file named system.properties in the src/main/resources directory.  The file should be modeled after the example_system.properties file in the same directory.  The properties file should contain the following properties:
-1. A list of models -- the models are defined in your AtScale environment.
+To get started create a properties file named systems.properties in the src/main/resources directory.  The file should be modeled after the example_systems.properties file in the same directory.  The properties file should contain the following properties:
+1. A list of models -- the models are defined in your AtScale environment, replacing the literals model1,model2,model3 in the properties file.
 2. The JDBC URL to connect to the AtScale Postgres Database where system configuration data and query data is stored.  The database is named atscale.
 3. The username and password to connect to the AtScale Postgres Database
 4. A set of properties to connect to the AtScale JDBC endpoint for each model.  AtScale emulates Postgres so the JDBC URL looks similar to the AtScale database where system configuration is stored.
