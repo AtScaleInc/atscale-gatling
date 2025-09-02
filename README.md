@@ -92,18 +92,20 @@ Assuming you simply modify the existing executors to run your models, you can ru
 ```shell
  ./mvnw clean compile exec:java -Dexec.mainClass="executors.OpenStepSimulationExecutor"
 ```
-There is also a maven goal defined in the pom.xml file.  The same command can be run using:
+
+```shell                                                                                      
+ ./mvnw clean compile exec:java -Dexec.mainClass="executors.ClosedStepSimulationExecutor"     
+```                                                                                           
+There is also a maven goal defined in the pom.xml file.  The same commands can be run using:
 ```shell
  ./mvnw clean compile exec:java@openstep-simulation-executor
 ```
 
 ```shell
- ./mvnw clean compile exec:java -Dexec.mainClass="executors.ClosedStepSimulationExecutor"
-```
-There is also a maven goal defined in the pom.xml file.  The same command can be run using:
-```shell
  ./mvnw clean compile exec:java@closedstep-simulation-executor
 ```
+              
+
 
 Test results are presented in a Gatling HTML report.  Those reports can be found in the target/gatling directory.
 
@@ -115,16 +117,15 @@ A typical Gatling HTML report is shown below.  Note the Description field ties t
 
 The query names connect the report output to the queries that were run.  Details of the query can be found in the /queries directory.  Additional information can be found in the /run_logs directory.
 
-We have provided the ability to easily shape the desired user load. That means customers can shape their tests to simulate user interactions over time.
+We have provided the ability to easily shape the desired user load. That means customers can shape their tests to simulate user interactions over time.  For instance:
 
-A regression test might run each query one time by specifying AtOnceUsersOpenInjectionStep(1) 
+A regression test might run each query once by specifying AtOnceUsersOpenInjectionStep(1) 
 
-A load test might run each query 10 times by specifying AtOnceUsersOpenInjectionStep(10)
+A different test might simulate 10 users who run each query 1 time by specifying AtOnceUsersOpenInjectionStep(10)
 
-A ramp test might ramp users up from 0 to 10 over a period of 60 minutes by specifying RampUsersOpenInjectionStep(10, 60)
+A ramp test might ramp users up from 0 to 500 over a period of 60 minutes by specifying RampUsersOpenInjectionStep(500, 60)
 
 A performance test might ramp users up and down over time by specifying a series of injection steps.
-
 
 The following injection steps are implemented in the parent project. 
 
