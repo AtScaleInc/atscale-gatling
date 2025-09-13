@@ -37,7 +37,7 @@ public class OpenStepSimulationExecutor extends SimulationExecutor<OpenStep> {
         //t3InjectionSteps.add(new RampUsersPerSecOpenInjectionStep(1, 5, 1));
 
         List<OpenStep> atOnceInjectionSteps = new ArrayList<>();
-        t1InjectionSteps.add(new AtOnceUsersOpenInjectionStep(1));
+        atOnceInjectionSteps.add(new AtOnceUsersOpenInjectionStep(1));
 
 
         // Three example tasks for the Container Version. Uncomment tasks.add as needed.
