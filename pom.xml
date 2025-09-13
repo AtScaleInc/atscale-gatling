@@ -160,9 +160,19 @@
             <version>2.0.12</version>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.5.18</version>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.25.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.25.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>2.25.1</version>
         </dependency>
         <!-- Support JDBC for AtScale Installer Version requires Hive JDBC Uber Jar downloaded to /lib.
         It is sourced from https://github.com/timveil/hive-jdbc-uber-jar/releases
