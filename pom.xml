@@ -182,13 +182,5 @@
             <artifactId>hive-jdbc-uber</artifactId>
             <version>2.6.3.0-235</version>
         </dependency>
-        <!-- Support JDBC for AtScale Installer Version requires Hive JDBC Uber Jar downloaded to /lib.
-        It is sourced from https://github.com/timveil/hive-jdbc-uber-jar/releases
-        Install this from /lib by running the ConfigurationExecutor -->
-        <dependency>
-            <groupId>veil.hdp.hive</groupId>
-            <artifactId>hive-jdbc-uber</artifactId>
-            <version>2.6.3.0-235</version>
-        </dependency>
     </dependencies>
 </project>
