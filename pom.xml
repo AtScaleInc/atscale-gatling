@@ -86,6 +86,15 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>installer-query-extract</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>executors.InstallerVerQueryExtractExecutor</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>closedstep-simulation-executor</id>
                         <goals>
                             <goal>java</goal>
@@ -120,7 +129,7 @@
         <dependency>
             <groupId>com.atscale.gatling</groupId>
             <artifactId>atscale-gatling-core</artifactId>
-            <version>1.01</version>
+            <version>1.1</version>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
@@ -154,6 +163,14 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.5.18</version>
+        </dependency>
+        <!-- Support JDBC for AtScale Installer Version requires Hive JDBC Uber Jar downloaded to /lib.
+        It is sourced from https://github.com/timveil/hive-jdbc-uber-jar/releases
+        Install this from /lib by running the ConfigurationExecutor -->
+        <dependency>
+            <groupId>veil.hdp.hive</groupId>
+            <artifactId>hive-jdbc-uber</artifactId>
+            <version>2.6.3.0-235</version>
         </dependency>
     </dependencies>
 </project>

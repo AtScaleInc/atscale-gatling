@@ -1,5 +1,5 @@
 # atscale-gatling
-Overview
+### Overview
 
 Gatling test harness for AtScale. Uses the atscale-gatling-core library to run regression, load, and performance tests.
 
@@ -23,6 +23,26 @@ We enable a two step process, which provides an opportunity to modify query extr
 
 The simulations consume the query extracts and run them against the AtScale Engine.  They produce results in the form of Gatling HTML reports and run_logs.
 
+### Quick Start
+Prerequisites should you choose to run this project:
+1. Java 21 (temurin-21)
+2. Run a shell command to install the Hive JDBC driver found in the /lib directory to the maven repository.
+3. Configure systems.properties file
+
+
+Install Hive Driver
+Run this command
+```shell
+
+./mvnw install:install-file \
+  -Dfile=./lib/hive-jdbc-uber-2.6.3.0-235.jar \
+  -DgroupId=veil.hdp.hive \
+  -DartifactId=hive-jdbc-uber \
+  -Dversion=2.6.3.0-235 \
+  -Dpackaging=jar
+```
+
+Configure systems.properties file
 
 To get started create a properties file named systems.properties in the src/main/resources directory.  The file should be modeled after the example_systems.properties file in the same directory.  The properties file should contain the following properties:
 1. A list of models -- the models are defined in your AtScale environment, replacing the literals model1,model2,model3 in the properties file.
@@ -56,23 +76,69 @@ atscale.model1.xmla.cube=cube_name_for_model1
 atscale.model1.xmla.catalog=catalog_name_for_model1
 atscale.model1.xmla.log.responsebody=true
 ```  
+The list of models is comma separated.  Copy and paste the model names directly from the AtScale UI.
+In Java, properties may have spaces, so model names with spaces are supported.
+However, property keys cannot have spaces.  Therefore, in the property keys we replace spaces with underscores.  For example, if your model name is Sales Model, then the property key would be atscale.Sales_Model.jdbc.url, etc.
+
 
 Optionally enable logging of result sets and XMLA response bodies.  Logging uses async logging defined in the logback.xml file.
 
-Run this command to extract queries from the AtScale database into a files:
+##### Optional Properties
+The following properties are optional.  If not provided, default values will be used.
+```
+atscale.gatling.heapsize=16G
+atscale.gatling.throttle.ms=100
+atscale.xmla.maxConnectionsPerHost=10
+atscale.xmla.useAggregates=true
+atscale.xmla.generateAggregates=false
+atscale.xmla.useQueryCache=false
+atscale.xmla.useAggregateCache=true
+```
+atscale.gatling.throttle.ms -- Introduces a pause between queries to avoid overwhelming the AtScale Engine.  The value is in milliseconds.
+
+atscale.xmla.maxConnectionsPerHost -- The maximum number of connections to the AtScale XMLA endpoint.  This value should be tuned based on the expected user load.
+
+Default values
+```
+atscale.gatling.heapsize=4G
+atscale.gatling.throttle.ms=5
+atscale.xmla.maxConnectionsPerHost=20
+atscale.xmla.useAggregates=true
+atscale.xmla.generateAggregates=false
+atscale.xmla.useQueryCache=false
+atscale.xmla.useAggregateCache=true
+```
+
+## Extract Queries
+Run one of the following commands to extract queries from the AtScale database into a files:
+
+### AtScale Container Product (Kubernetes)
+
 ```shell
  ./mvnw clean compile exec:java -Dexec.mainClass="executors.QueryExtractExecutor"
 ```
 There is also a maven goal defined in the pom.xml file.  The same command can be run using:
 ```shell
- ./mvnw clean compile exec:java@query-extract
+./mvnw clean compile exec:java@query-extract
 ```
-where query-extract is the id of the execution to be run.
+
+### AtScale Installer Product
+```shell
+ ./mvnw clean compile exec:java -Dexec.mainClass="executors.InstallerVerQueryExtractExecutor"
+```
+There is also a maven goal defined in the pom.xml file.  The same command can be run using:
+
+```shell
+./mvnw clean compile exec:java@installer-query-extract
+```
+where query-extract, or install-query-extract is the id of the execution to be run.
 
 For details refer to the pom.xml file and look for:  <artifactId>exec-maven-plugin</artifactId>
 
 If run successfully, there will be two files created in the directory /queries for each model defined in the atscale.models property.  One file contains the queries executed against the JDBC endpoint.  The other file contains the queries executed against the XMLA endpoint.
 
+
+## Run Simulations
 Once we have extracted the queries we can run Gatling Scenario Simulations to execute the queries against the Atscale Engine.  In the src/main/executors directory there are two example executors: OpenStepSimulationExecutor and ClosedStepSimulationExecutor.  These executors run Gatling simulations using open steps and closed steps respectively.  You can create your own executors by modeling them after these examples.  OpenStep and ClosedStep simulations are defined in Gatling.  We simply leverage those constructs.
 
 Our example executors extend the base SimulationExecutor class, implementing the Decorator design pattern to more tightly define it as either a ClosedStep or OpenStep Simulation.  Implementations are simple.  Just define implementations for the two abstract methods of the base class.

@@ -20,20 +20,21 @@ public class OpenStepSimulationExecutor extends SimulationExecutor<OpenStep> {
 
         OpenStepSimulationExecutor executor = new OpenStepSimulationExecutor();
         executor.execute();
-        LOGGER.info("SimulationExecutor completed.  Simulations may still be running on separate threads.");
+        LOGGER.info("SimulationExecutor completed.");
     }
 
     protected List<MavenTaskDto> getSimulationTasks() {
         List<MavenTaskDto> tasks = new ArrayList<>();
 
         List<OpenStep> t1InjectionSteps = new ArrayList<>();
-        t1InjectionSteps.add(new AtOnceUsersOpenInjectionStep(2));
+        t1InjectionSteps.add(new AtOnceUsersOpenInjectionStep(1));
 
         List<OpenStep> t2InjectionSteps = new ArrayList<>();
-        t2InjectionSteps.add(new AtOnceUsersOpenInjectionStep(2));
+        t2InjectionSteps.add(new AtOnceUsersOpenInjectionStep(1));
 
         List<OpenStep> t3InjectionSteps = new ArrayList<>();
-        t3InjectionSteps.add(new RampUsersPerSecOpenInjectionStep(1, 5, 1));
+        t3InjectionSteps.add(new AtOnceUsersOpenInjectionStep(1));
+        //t3InjectionSteps.add(new RampUsersPerSecOpenInjectionStep(1, 5, 1));
 
 
         MavenTaskDto task1 = new MavenTaskDto("Internet Sales XMLA Simulation");
