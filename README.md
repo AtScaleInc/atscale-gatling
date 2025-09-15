@@ -81,7 +81,9 @@ In Java, properties may have spaces, so model names with spaces are supported.
 However, property keys cannot have spaces.  Therefore, in the property keys we replace spaces with underscores.  For example, if your model name is Sales Model, then the property key would be atscale.Sales_Model.jdbc.url, etc.
 
 
-Optionally enable logging of result sets and XMLA response bodies.  Logging uses async logging defined in the logback.xml file.
+Optionally enable logging of result sets and XMLA response bodies.  Adjust the heapsize as needed by setting the atscale.gatling.heapsize property.  
+
+Logging uses async logging defined in the log4j2.xml file, where adjustments can be made to the buffersize property for the async loggers.
 
 ##### Optional Properties
 The following properties are optional.  If not provided, default values will be used.
