@@ -129,7 +129,7 @@
         <dependency>
             <groupId>com.atscale.gatling</groupId>
             <artifactId>atscale-gatling-core</artifactId>
-            <version>1.1</version>
+            <version>1.2</version>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
