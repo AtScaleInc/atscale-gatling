@@ -95,21 +95,39 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>closedstep-simulation-executor</id>
+                        <id>closedstep-concurrent-simulation-executor</id>
                         <goals>
                             <goal>java</goal>
                         </goals>
                         <configuration>
-                            <mainClass>executors.ClosedStepSimulationExecutor</mainClass>
+                            <mainClass>executors.ClosedStepConcurrentSimulationExecutor</mainClass>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>openstep-simulation-executor</id>
+                        <id>openstep-concurrent-simulation-executor</id>
                         <goals>
                             <goal>java</goal>
                         </goals>
                         <configuration>
-                            <mainClass>executors.OpenStepSimulationExecutor</mainClass>
+                            <mainClass>executors.OpenStepConcurrentSimulationExecutor</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>closedstep-sequential-simulation-executor</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>executors.ClosedStepSequentialSimulationExecutor</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>openstep-sequential-simulation-executor</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>executors.OpenStepSequentialSimulationExecutor</mainClass>
                         </configuration>
                     </execution>
                 </executions>
