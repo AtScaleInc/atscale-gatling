@@ -29,6 +29,7 @@ public class CustomQueryExtractExecutor {
         cacheXmlaQueries("internet_sales");
 
         LOGGER.info("QueryExtractExecutor finished.");
+        org.apache.logging.log4j.LogManager.shutdown();
     }
 
     private void cacheJdbcQueries(String model) {

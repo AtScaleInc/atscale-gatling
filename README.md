@@ -23,23 +23,27 @@ We enable a two step process, which provides an opportunity to modify query extr
 
 The simulations consume the query extracts and run them against the AtScale Engine.  They produce results in the form of Gatling HTML reports and run_logs.
 
+Query extract executors facilitate query extraction.  Simulation executors are designed to run simulations either sequentially or concurrently.  Generally, this is achieved by choosing a sequential or concurrent executor example and updating with configurations for your environment and models under test.
+
+![img_7.png](img_7.png)
+
 ### Quick Start
 Prerequisites should you choose to run this project:
 1. Java 21 (temurin-21)
 2. Run a shell command to install the Hive JDBC driver found in the /lib directory to the maven repository.
 3. Configure systems.properties file
 
+##### All commands should be run from the root directory of the project.
 
 Install Hive Driver
-Run this command
-```shell
 
-./mvnw install:install-file \
-  -Dfile=./lib/hive-jdbc-uber-2.6.3.0-235.jar \
-  -DgroupId=veil.hdp.hive \
-  -DartifactId=hive-jdbc-uber \
-  -Dversion=2.6.3.0-235 \
-  -Dpackaging=jar
+MacOS or Linux Run this command
+```shell
+./mvnw -X install:install-file -Dfile=./lib/hive-jdbc-uber-2.6.3.0-235.jar -DpomFile=./lib/hive-jdbc-uber-2.6.3.0-235.pom
+```
+Windows Run this command
+```shell
+.\mvnw.cmd -X install:install-file -Dfile=".\lib\hive-jdbc-uber-2.6.3.0-235.jar"  -DpomFile=".\lib\hive-jdbc-uber-2.6.3.0-235.pom"
 ```
 
 Configure systems.properties file
@@ -111,6 +115,36 @@ atscale.xmla.useQueryCache=false
 atscale.xmla.useAggregateCache=true
 ```
 
+Maven
+
+The project makes extensive use of Maven.  Maven wrappers are included which means users do not need to install Maven.  The wrappers will download and install Maven as needed.
+
+For MacOS or Linux use the command ./mvnw   
+
+For example, to check the version of Maven installed use the command:
+```shell
+./mvnw --version
+```
+
+For Windows use the command .\mvnw.cmd   
+
+For example, to check the version of Maven installed use the command:
+```shell
+.\mvnw.cmd --version
+```
+Those commands should return content that is similar to the following:
+```
+Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+Maven home: /Users/stevehall/.m2/wrapper/dists/apache-maven-3.9.11/a2d47e15
+Java version: 21.0.7, vendor: Eclipse Adoptium, runtime: /Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home
+Default locale: en_US, platform encoding: UTF-8
+OS name: "mac os x", version: "15.1", arch: "aarch64", family: "mac"
+```
+
+
+
+All subsequent maven commands should be run using the maven wrapper commands that are appropriate for your platform.  We are showing the MacOS and Linux commands below.  Just replace ./mvnw with .\mvnw.cmd for Windows.
+
 ## Extract Queries
 Run one of the following commands to extract queries from the AtScale database into a files:
 
@@ -133,7 +167,7 @@ There is also a maven goal defined in the pom.xml file.  The same command can be
 ```shell
 ./mvnw clean compile exec:java@installer-query-extract
 ```
-where query-extract, or install-query-extract is the id of the execution to be run.
+where query-extract, or installer-query-extract is the id of the execution to be run.
 
 For details refer to the pom.xml file and look for:  <artifactId>exec-maven-plugin</artifactId>
 
@@ -160,21 +194,36 @@ Output of the simulations will be found in the /target/gatling.  Each simulation
 Assuming you simply modify the existing executors to run your models, you can run the simulations using the following commands:
 
 ```shell
- ./mvnw clean compile exec:java -Dexec.mainClass="executors.OpenStepSimulationExecutor"
+ ./mvnw clean compile exec:java -Dexec.mainClass="executors.OpenStepSequentialSimulationExecutor"
 ```
 
 ```shell                                                                                      
- ./mvnw clean compile exec:java -Dexec.mainClass="executors.ClosedStepSimulationExecutor"     
+ ./mvnw clean compile exec:java -Dexec.mainClass="executors.ClosedStepSequentialSimulationExecutor"     
 ```                                                                                           
 There is also a maven goal defined in the pom.xml file.  The same commands can be run using:
 ```shell
- ./mvnw clean compile exec:java@openstep-simulation-executor
+ ./mvnw clean compile exec:java@openstep-sequential-simulation-executor
 ```
 
 ```shell
- ./mvnw clean compile exec:java@closedstep-simulation-executor
+ ./mvnw clean compile exec:java@closedstep-sequential-simulation-executor
 ```
               
+For concurrent execution, use the following commands:
+```shell
+ ./mvnw clean compile exec:java -Dexec.mainClass="executors.OpenStepConcurrentSimulationExecutor"
+```
+
+```shell                                                                                      
+ ./mvnw clean compile exec:java -Dexec.mainClass="executors.ClosedStepConcurrentSimulationExecutor"     
+```                                                                                          
+There is also a maven goal defined in the pom.xml file.  The same commands can be run using:
+```shell
+ ./mvnw clean compile exec:java@openstep-concurrent-simulation-executor
+```
+```shell
+ ./mvnw clean compile exec:java@closedstep-concurrent-simulation-executor
+```
 
 
 Test results are presented in a Gatling HTML report.  Those reports can be found in the target/gatling directory.

@@ -28,6 +28,7 @@ public class InstallerVerQueryExtractExecutor {
         }
 
         LOGGER.info("QueryExtractExecutor finished.");
+        org.apache.logging.log4j.LogManager.shutdown();
     }
 
     private void cacheJdbcQueries(String model) {
