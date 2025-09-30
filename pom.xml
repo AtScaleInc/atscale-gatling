@@ -19,6 +19,7 @@
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+        <log4j2.version>2.25.1</log4j2.version>
     </properties>
     <build>
         <sourceDirectory>src/main</sourceDirectory>
@@ -70,6 +71,25 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Plugin to move the dependencies to the target directory -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.1.2</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dependency</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Defines a call to a java executable -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -83,24 +103,57 @@
                         </goals>
                         <configuration>
                             <mainClass>executors.QueryExtractExecutor</mainClass>
+                            <classpathScope>runtime</classpathScope>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>closedstep-simulation-executor</id>
+                        <id>installer-query-extract</id>
                         <goals>
                             <goal>java</goal>
                         </goals>
                         <configuration>
-                            <mainClass>executors.ClosedStepSimulationExecutor</mainClass>
+                            <mainClass>executors.InstallerVerQueryExtractExecutor</mainClass>
+                            <classpathScope>runtime</classpathScope>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>openstep-simulation-executor</id>
+                        <id>closedstep-concurrent-simulation-executor</id>
                         <goals>
                             <goal>java</goal>
                         </goals>
                         <configuration>
-                            <mainClass>executors.OpenStepSimulationExecutor</mainClass>
+                            <mainClass>executors.ClosedStepConcurrentSimulationExecutor</mainClass>
+                            <classpathScope>runtime</classpathScope>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>openstep-concurrent-simulation-executor</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>executors.OpenStepConcurrentSimulationExecutor</mainClass>
+                            <classpathScope>runtime</classpathScope>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>closedstep-sequential-simulation-executor</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>executors.ClosedStepSequentialSimulationExecutor</mainClass>
+                            <classpathScope>runtime</classpathScope>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>openstep-sequential-simulation-executor</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>executors.OpenStepSequentialSimulationExecutor</mainClass>
+                            <classpathScope>runtime</classpathScope>
                         </configuration>
                     </execution>
                 </executions>
@@ -114,13 +167,83 @@
                     <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>
+            <!-- Use enforcer to catch any dependency conflicts -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <dependencyConvergence/>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>${log4j2.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-library</artifactId>
+                <version>${scala.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>2.0.17</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jodd</groupId>
+                <artifactId>jodd-util</artifactId>
+                <version>6.3.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.xmlresolver</groupId>
+                <artifactId>xmlresolver</artifactId>
+                <version>6.0.16</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-annotations</artifactId>
+                <version>4.9.3</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.19.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.18.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-reflect</artifactId>
+                <version>2.13.10</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>com.atscale.gatling</groupId>
             <artifactId>atscale-gatling-core</artifactId>
-            <version>1.01</version>
+            <version>1.2</version>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
@@ -145,15 +268,18 @@
             <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
+       <dependency>
+           <groupId>org.slf4j</groupId>
+           <artifactId>slf4j-api</artifactId>
+           <version>2.0.17</version>
+       </dependency>
+        <!-- Support JDBC for AtScale Installer Version requires Hive JDBC Uber Jar downloaded to /lib.
+        It is sourced from https://github.com/timveil/hive-jdbc-uber-jar/releases
+        Install this from /lib by running the ConfigurationExecutor -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.12</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.5.18</version>
+            <groupId>veil.hdp.hive</groupId>
+            <artifactId>hive-jdbc-uber</artifactId>
+            <version>2.6.3.0-235</version>
         </dependency>
     </dependencies>
 </project>
