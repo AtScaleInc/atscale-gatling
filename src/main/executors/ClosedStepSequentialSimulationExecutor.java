@@ -80,8 +80,6 @@ public class ClosedStepSequentialSimulationExecutor extends SequentialSimulation
         task4.setRunDescription("TPCDS JDBC Model Tests");
         task4.setModel("TPC-DS Benchmark Model");
         task4.setInjectionSteps(constantUsersInjectionSteps);
-          
-
         MavenTaskDto<ClosedStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
         //tasks.add(task5);
         task5.setMavenCommand("gatling:test");
