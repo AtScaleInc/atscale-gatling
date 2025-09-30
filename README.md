@@ -177,11 +177,18 @@ If run successfully, there will be two files created in the directory /queries f
 ## Run Simulations
 Once we have extracted the queries we can run Gatling Scenario Simulations to execute the queries against the Atscale Engine.  In the src/main/executors directory there are two example executors: OpenStepSimulationExecutor and ClosedStepSimulationExecutor.  These executors run Gatling simulations using open steps and closed steps respectively.  You can create your own executors by modeling them after these examples.  OpenStep and ClosedStep simulations are defined in Gatling.  We simply leverage those constructs.
 
-Our example executors extend the base SimulationExecutor class, implementing the Decorator design pattern to more tightly define it as either a ClosedStep or OpenStep Simulation.  Implementations are simple.  Just define implementations for the two abstract methods of the base class.
+Our example executors extend the base SimulationExecutor class, implementing the Decorator design pattern to more tightly define it as either a ClosedStep or OpenStep Simulation.  Implementations are simple.  Just define implementations for the abstract method of the base class.
 ```
-protected abstract List<MavenTaskDto> getSimulationTasks(); 
-protected abstract String injectionStepsAsJson(List<T> injectionSteps);
+protected abstract List<MavenTaskDto<T>> getSimulationTasks();
 ```
+Type T is either OpenStep or ClosedStep depending on the type of executor.
+For example:
+```
+protected List<MavenTaskDto<ClosedStep>> getSimulationTasks()
+
+protected List<MavenTaskDto<OpenStep>> getSimulationTasks()
+```
+
 
 The getSimulationTasks() method returns a list of MavenTaskDto objects.  These data transfer objects define the simulation class to be run, the AtScale model to be used, and a list of injection steps.  Injection steps define the type of user load we want to run against the AtScale Engine.  Injection steps are defined as a list.  Each injection step is an adaptor between a JSON form that can be passed to the test framework and a Gatling injection step.  See the toGatlingStep() method in these objects.  Gatling will run the simulation defined in the task passing the list of injection steps to the simulation.  Injections steps will be executed sequentially.  The tasks, or more specifically the simulations, are run in parallel on separate JVMs to simulate real world load on the XMLA and JDBC AtScale Engine endpoints.
 
