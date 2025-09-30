@@ -78,8 +78,6 @@ public class OpenStepConcurrentSimulationExecutor extends ConcurrentSimulationEx
         task4.setRunDescription("TPCDS JDBC Model Tests");
         task4.setModel("TPC-DS Benchmark Model");
         task4.setInjectionSteps(atOnceInjectionSteps);
-          
-
         MavenTaskDto<OpenStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
         //tasks.add(task5);
         task5.setMavenCommand("gatling:test");
