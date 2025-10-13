@@ -140,6 +140,5 @@ public class InstallerVerQueryExtractExecutor {
         AtScalePostgresDao dao = AtScalePostgresDao.getInstance();
         QueryHistoryFileUtil queryHistoryFileUtil = new QueryHistoryFileUtil(dao);
         queryHistoryFileUtil.cacheXmlaQueries(model, query, AtScalePostgresDao.QueryLanguage.XMLA.getValue(), model);
-
     }
 }
