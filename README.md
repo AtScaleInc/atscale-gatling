@@ -27,6 +27,11 @@ Query extract executors facilitate query extraction.  Simulation executors are d
 
 ![img_7.png](img_7.png)
 
+
+Alternatively, you can create your own query files and place them in the /ingest directory.
+
+![img_8.png](img_8.png)
+
 ### Quick Start
 Prerequisites should you choose to run this project:
 1. Java 21 (temurin-21)
@@ -85,14 +90,13 @@ In Java, properties may have spaces, so model names with spaces are supported.
 However, property keys cannot have spaces.  Therefore, in the property keys we replace spaces with underscores.  For example, if your model name is Sales Model, then the property key would be atscale.Sales_Model.jdbc.url, etc.
 
 
-Optionally enable logging of result sets and XMLA response bodies.  Adjust the heapsize as needed by setting the atscale.gatling.heapsize property.  
+Optionally enable logging of result sets and XMLA response bodies.  
 
 Logging uses async logging defined in the log4j2.xml file, where adjustments can be made to the buffersize property for the async loggers.
 
 ##### Optional Properties
 The following properties are optional.  If not provided, default values will be used.
 ```
-atscale.gatling.heapsize=16G
 atscale.gatling.throttle.ms=100
 atscale.xmla.maxConnectionsPerHost=10
 atscale.xmla.useAggregates=true
@@ -106,7 +110,6 @@ atscale.xmla.maxConnectionsPerHost -- The maximum number of connections to the A
 
 Default values
 ```
-atscale.gatling.heapsize=4G
 atscale.gatling.throttle.ms=5
 atscale.xmla.maxConnectionsPerHost=20
 atscale.xmla.useAggregates=true
@@ -145,10 +148,13 @@ OS name: "mac os x", version: "15.1", arch: "aarch64", family: "mac"
 
 All subsequent maven commands should be run using the maven wrapper commands that are appropriate for your platform.  We are showing the MacOS and Linux commands below.  Just replace ./mvnw with .\mvnw.cmd for Windows.
 
-## Extract Queries
+
+## Extract Queries from the BI Query Run Logs or Create Query Extract Files in the ingest directory
+
+### Extract Queries
 Run one of the following commands to extract queries from the AtScale database into a files:
 
-### AtScale Container Product (Kubernetes)
+#### AtScale Container Product (Kubernetes)
 
 ```shell
  ./mvnw clean compile exec:java -Dexec.mainClass="executors.QueryExtractExecutor"
@@ -158,7 +164,7 @@ There is also a maven goal defined in the pom.xml file.  The same command can be
 ./mvnw clean compile exec:java@query-extract
 ```
 
-### AtScale Installer Product
+#### AtScale Installer Product
 ```shell
  ./mvnw clean compile exec:java -Dexec.mainClass="executors.InstallerVerQueryExtractExecutor"
 ```
@@ -172,6 +178,13 @@ where query-extract, or installer-query-extract is the id of the execution to be
 For details refer to the pom.xml file and look for:  <artifactId>exec-maven-plugin</artifactId>
 
 If run successfully, there will be two files created in the directory /queries for each model defined in the atscale.models property.  One file contains the queries executed against the JDBC endpoint.  The other file contains the queries executed against the XMLA endpoint.
+
+### Or Create Query Extract Files in the ingest directory
+If you do not want to extract queries from the AtScale database, you can create your own query extract files in the /ingest directory.  The files can be named anything you want.  They must have two columns separated by a comma.  The first column is the query name that will show up on the Gatling reports.  The second column is the query text.  For examples refer to the sample files in the /ingest directory.  If you choose to run your own query extract files, when defining executor tasks, simply indicate which file to use in your task definition.  For example:
+```
+task.setIngestionFileName("tpcds_benchmark_jdbc_queries.csv", false);
+```
+Use true or false to indicate whether the file has a reader row.   Headers can be named anything you choose.  We simply skip the first row if the file has a header.
 
 
 ## Run Simulations
