@@ -97,12 +97,15 @@ Logging uses async logging defined in the log4j2.xml file, where adjustments can
 ##### Optional Properties
 The following properties are optional.  If not provided, default values will be used.
 ```
-atscale.gatling.throttle.ms=100
-atscale.xmla.maxConnectionsPerHost=10
+atscale.gatling.throttle.ms=5
+atscale.xmla.maxConnectionsPerHost=20
 atscale.xmla.useAggregates=true
 atscale.xmla.generateAggregates=false
 atscale.xmla.useQueryCache=false
 atscale.xmla.useAggregateCache=true
+atscale.jdbc.useAggregates=true
+atscale.jdbc.generateAggregates=false
+atscale.jdbc.useQueryCache=false
 ```
 atscale.gatling.throttle.ms -- Introduces a pause between queries to avoid overwhelming the AtScale Engine.  The value is in milliseconds.
 
