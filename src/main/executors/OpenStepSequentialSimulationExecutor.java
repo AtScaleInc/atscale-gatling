@@ -40,7 +40,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
 
         // Three example tasks for the Container Version. Uncomment tasks.add as needed.
         MavenTaskDto<OpenStep> task1 = new MavenTaskDto<>("Internet Sales XMLA Simulation");
-        tasks.add(task1);
+        //tasks.add(task1);
         task1.setMavenCommand("gatling:test");
         task1.setRunLogFileName("internet_sales_xmla.log");
         task1.setLoggingAsAppend(true);
@@ -50,7 +50,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task1.setInjectionSteps(t1InjectionSteps);
 
         MavenTaskDto<OpenStep> task2 = new MavenTaskDto<>("Internet Sales JDBC Simulation");
-        tasks.add(task2);
+        //tasks.add(task2);
         task2.setMavenCommand("gatling:test");
         task2.setRunLogFileName("internet_sales_jdbc.log");
         task2.setLoggingAsAppend(true);
@@ -60,7 +60,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task2.setInjectionSteps(t2InjectionSteps);
 
         MavenTaskDto<OpenStep> task3 = new MavenTaskDto<>("TPC-DS JDBC Simulation");
-        tasks.add(task3);
+        //tasks.add(task3);
         task3.setMavenCommand("gatling:test");
         task3.setRunLogFileName("tpcds_benchmark_jdbc.log");
         task3.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleOpenInjectionStepSimulation");
@@ -70,7 +70,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         
         // Two example tasks for the Installer Version. Exclude by removing tasks.add as needed.
         MavenTaskDto<OpenStep> task4 = new MavenTaskDto<>("Installer TPC-DS JDBC Simulation");
-        //tasks.add(task4);
+        tasks.add(task4);
         task4.setMavenCommand("gatling:test");
         task4.setRunLogFileName("tpcds_benchmark_hive.log");
         task4.setLoggingAsAppend(false);
@@ -78,8 +78,10 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task4.setRunDescription("TPCDS JDBC Model Tests");
         task4.setModel("TPC-DS Benchmark Model");
         task4.setInjectionSteps(atOnceInjectionSteps);
+        task4.setIngestionFileName("tpcds_benchmark_jdbc_queries.csv", false);
+
         MavenTaskDto<OpenStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
-        //tasks.add(task5);
+        tasks.add(task5);
         task5.setMavenCommand("gatling:test");
         task5.setRunLogFileName("tpcds_benchmark_xmla.log");
         task5.setLoggingAsAppend(false);
@@ -87,6 +89,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task5.setRunDescription("TPCDS XMLA Model Tests");
         task5.setModel("TPC-DS Benchmark Model");
         task5.setInjectionSteps(atOnceInjectionSteps);
+        task5.setIngestionFileName("tpcds_benchmark_xmla_queries.csv", true);
 
         return tasks;
     }
