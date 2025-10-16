@@ -70,4 +70,5 @@ run git fetch upstream to get latest changes from AtScale
 check out the branch of interest....   
 git checkout release-1.6
 
-git merge upstream/release-1.6
+merge the changes from upstream/release-1.6 into your local development-1.6 branch
+git merge upstream/release-1.6 
