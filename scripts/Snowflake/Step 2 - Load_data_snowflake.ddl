@@ -2,7 +2,7 @@
 -- results tables
 
 -- If you are using SnowSQL, upload your file like this (run from your terminal, not in the worksheet):
--- snowsql -q "PUT file:///path/to/your/logs.csv @gatling_logs_stage AUTO_COMPRESS=TRUE OVERWRITE=TRUE"
+-- snowsql -q "PUT file:///path/to/your/logs.csv @DAVE.TPCDS_RESULTS.GATLING_LOGS_STAGE AUTO_COMPRESS=TRUE OVERWRITE=TRUE"
 
 -- If you use Snowsight UI, you can also right-click the stage and "Upload" the file.
 
@@ -23,9 +23,11 @@ create or replace table gatling_sql_logs (
   logger            string,
   message_kind      string,
   gatling_run_id    string,
+  status            string,
   gatling_session_id number,
   model             string,
   query_name        string,
+  query_hash        string,
   start_ms          number,
   end_ms            number,
   duration_ms       number,
@@ -54,9 +56,11 @@ select
 
     /* key/value pairs */
     regexp_substr(raw_line, 'gatlingRunId=''([^'']*)''', 1, 1, 'e', 1)                                                                       as gatling_run_id,
+    regexp_substr(raw_line, 'status=''([^'']*)''', 1, 1, 'e', 1)                                                                       as status,
     try_to_number(regexp_substr(raw_line, 'gatlingSessionId=([0-9]+)', 1, 1, 'e', 1))                                                        as gatling_session_id,
     regexp_substr(raw_line, 'model=''([^'']*)''', 1, 1, 'e', 1)                                                                              as model,
     regexp_substr(raw_line, 'queryName=''([^'']*)''', 1, 1, 'e', 1)                                                                          as query_name,
+    regexp_substr(raw_line, 'inboundTextAsMd5Hash=''([^'']*)''', 1, 1, 'e', 1)                                                                          as query_hash,
 
     try_to_number(regexp_substr(raw_line, 'start=([0-9]+)',    1, 1, 'e', 1))                                                                as start_ms,
     try_to_number(regexp_substr(raw_line, 'end=([0-9]+)',      1, 1, 'e', 1))                                                                as end_ms,
@@ -78,16 +82,18 @@ from gatling_raw_sql_logs;
 create or replace table gatling_sql_headers as
 select
     /* stable key built from your join columns */
-    hash(gatling_run_id, gatling_session_id, model, query_name) as run_key,
+    hash(gatling_run_id, gatling_session_id, model, query_hash) as run_key,
 
     ts,
     level,
     logger,
     message_kind,
     gatling_run_id,
+    status,
     gatling_session_id,
     model,
     query_name,
+    query_hash,
     start_ms,
     end_ms,
     duration_ms,
@@ -103,16 +109,18 @@ where rownumber is null;
 create or replace table gatling_sql_details as
 select
     /* same stable key for easy joins */
-    hash(gatling_run_id, gatling_session_id, model, query_name) as run_key,
+    hash(gatling_run_id, gatling_session_id, model, query_hash) as run_key,
 
     ts,
     level,
     logger,
     message_kind,
     gatling_run_id,
+    status,
     gatling_session_id,
     model,
     query_name,
+    query_hash,
 
     /* detail-specific fields */
     rownumber,
@@ -149,9 +157,11 @@ select
     h.logger                 as header_logger,
     h.message_kind           as header_message_kind,
     h.gatling_run_id,
+    h.status,
     h.gatling_session_id,
     h.model,
     h.query_name,
+    h.query_hash,
     h.start_ms               as header_start_ms,
     h.end_ms                 as header_end_ms,
     h.duration_ms            as header_duration_ms,
@@ -171,4 +181,4 @@ from gatling_sql_headers h
               on h.gatling_run_id     = d.gatling_run_id
                   and h.gatling_session_id = d.gatling_session_id
                   and h.model              = d.model
-                  and h.query_name         = d.query_name;
+                  and h.query_hash         = d.query_hash;

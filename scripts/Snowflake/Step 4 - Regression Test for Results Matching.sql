@@ -1,8 +1,8 @@
 -- Regression Test 2: Compare results for exact matching
 --
 -- Set the two run keys you want to compare
-set run_key_a = 'INSERT RUN KEY A HERE';
-set run_key_b = 'INSERT RUN KEY B HERE';
+set gatling_run_id_a = 'TPC-DS JDBC Model Tests | 1 Users | 2025-10-16-09:01:06';
+set gatling_run_id_b = 'TPC-DS JDBC Model Tests | 1 Users | 2025-10-16-09:01:06';
 
 with
     a as (
@@ -10,29 +10,35 @@ with
             test_name,
             model as model_name,
             query_name,
+            query_hash,
+            status,
             concurrent_users,
             rownumber,
             header_rows_returned as rows_returned,
             row_hash
         from v_gatling_joined
-        where run_key = $run_key_a
+        where gatling_run_id = $gatling_run_id_a
     ),
     b as (
         select
             test_name,
             model as model_name,
             query_name,
+            query_hash,
+            status,
             concurrent_users,
             rownumber,
             header_rows_returned as rows_returned,
             row_hash
         from v_gatling_joined
-        where run_key = $run_key_b
+        where gatling_run_id = $gatling_run_id_b
     )
 select
     a.test_name,
     a.model_name,
     a.query_name,
+    a.query_hash,
+    a.status,
     a.concurrent_users,
     a.rownumber,
     a.rows_returned as rows_returned_a,
