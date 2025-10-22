@@ -4,11 +4,14 @@ import com.atscale.java.executors.MavenTaskDto;
 import com.atscale.java.executors.SequentialSimulationExecutor;
 import com.atscale.java.injectionsteps.AtOnceUsersOpenInjectionStep;
 import com.atscale.java.injectionsteps.OpenStep;
+import com.atscale.java.utils.PropertiesManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class OpenStepSequentialSimulationExecutor extends SequentialSimulationExecutor<OpenStep> {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenStepSequentialSimulationExecutor.class);
@@ -22,6 +25,8 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
     }
 
     protected List<MavenTaskDto<OpenStep>> getSimulationTasks() {
+        Map<String, String> additionalProperties = getAdditionalProperties();
+
         List<MavenTaskDto<OpenStep>> tasks = new ArrayList<>();
 
         List<OpenStep> t1InjectionSteps = new ArrayList<>();
@@ -40,7 +45,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
 
         // Three example tasks for the Container Version. Uncomment tasks.add as needed.
         MavenTaskDto<OpenStep> task1 = new MavenTaskDto<>("Internet Sales XMLA Simulation");
-        //tasks.add(task1);
+        tasks.add(task1);
         task1.setMavenCommand("gatling:test");
         task1.setRunLogFileName("internet_sales_xmla.log");
         task1.setLoggingAsAppend(true);
@@ -48,9 +53,10 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task1.setRunDescription("Internet Sales XMLA Model Tests");
         task1.setModel( "internet_sales");
         task1.setInjectionSteps(t1InjectionSteps);
+        task1.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<OpenStep> task2 = new MavenTaskDto<>("Internet Sales JDBC Simulation");
-        //tasks.add(task2);
+        tasks.add(task2);
         task2.setMavenCommand("gatling:test");
         task2.setRunLogFileName("internet_sales_jdbc.log");
         task2.setLoggingAsAppend(true);
@@ -58,19 +64,21 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task2.setRunDescription("Internet Sales JDBC Model Tests");
         task2.setModel("internet_sales");
         task2.setInjectionSteps(t2InjectionSteps);
+        task2.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<OpenStep> task3 = new MavenTaskDto<>("TPC-DS JDBC Simulation");
-        //tasks.add(task3);
+        tasks.add(task3);
         task3.setMavenCommand("gatling:test");
         task3.setRunLogFileName("tpcds_benchmark_jdbc.log");
         task3.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleOpenInjectionStepSimulation");
         task3.setRunDescription("TPCDS JDBC Model Tests");
         task3.setModel("tpcds_benchmark_model");
         task3.setInjectionSteps(t3InjectionSteps);
+        task3.setAdditionalProperties(additionalProperties);
         
         // Two example tasks for the Installer Version. Exclude by removing tasks.add as needed.
         MavenTaskDto<OpenStep> task4 = new MavenTaskDto<>("Installer TPC-DS JDBC Simulation");
-        tasks.add(task4);
+        //tasks.add(task4);
         task4.setMavenCommand("gatling:test");
         task4.setRunLogFileName("tpcds_benchmark_hive.log");
         task4.setLoggingAsAppend(false);
@@ -79,9 +87,10 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task4.setModel("TPC-DS Benchmark Model");
         task4.setInjectionSteps(atOnceInjectionSteps);
         task4.setIngestionFileName("tpcds_benchmark_jdbc_queries.csv", false);
+        task4.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<OpenStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
-        tasks.add(task5);
+        //tasks.add(task5);
         task5.setMavenCommand("gatling:test");
         task5.setRunLogFileName("tpcds_benchmark_xmla.log");
         task5.setLoggingAsAppend(false);
@@ -90,7 +99,34 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task5.setModel("TPC-DS Benchmark Model");
         task5.setInjectionSteps(atOnceInjectionSteps);
         task5.setIngestionFileName("tpcds_benchmark_xmla_queries.csv", true);
+        task5.setAdditionalProperties(additionalProperties);
 
         return tasks;
+    }
+
+    /**
+     * Default implementation:
+     * Loads additional properties from AWS Secrets Manager if configured.
+     *
+     * Custom implementations:
+     * Change implementation for other secret management systems as needed.
+     * Can override the createSecretsManager method from the parent class hierarchy
+     * to provide a different SecretsManager implementation.
+     * Can override the additionalProperties method from the parent class hierarchy
+     * to change how properties are loaded.
+     */
+    private Map<String, String> getAdditionalProperties() {
+        String regionProp = "aws.region";
+        String secretsKeyProp = "aws.secrets-key";
+        Map<String, String> additionalProps = Collections.emptyMap();
+        if (PropertiesManager.hasProperty(regionProp) && PropertiesManager.hasProperty(secretsKeyProp)) {
+            LOGGER.info("Loading secrets from AWS");
+            String region = PropertiesManager.getCustomProperty(regionProp);
+            String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProp);
+            additionalProps = additionalProperties(region, secretsKey);
+        } else {
+            LOGGER.warn("AWS properties not configured. Using systems.properties.");
+        }
+        return additionalProps;
     }
 }

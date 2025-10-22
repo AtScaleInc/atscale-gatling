@@ -1,7 +1,8 @@
 package executors;
 
 import com.atscale.java.dao.AtScalePostgresDao;
-import com.atscale.java.utils.PropertiesFileReader;
+import com.atscale.java.utils.AwsSecretsManager;
+import com.atscale.java.utils.PropertiesManager;
 import com.atscale.java.utils.QueryHistoryFileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,12 +15,13 @@ public class InstallerVerQueryExtractExecutor {
 
     public static void main(String[] args) {
         InstallerVerQueryExtractExecutor executor = new InstallerVerQueryExtractExecutor();
+        executor.initAdditionalProperties();
         executor.execute();
     }
 
     protected void execute() {
         LOGGER.info("QueryExtractExecutor started.");
-        List<String> models = PropertiesFileReader.getAtScaleModels();
+        List<String> models = PropertiesManager.getAtScaleModels();
 
         for(String model : models) {
             LOGGER.info("Processing model: {}", model);
@@ -140,5 +142,18 @@ public class InstallerVerQueryExtractExecutor {
         AtScalePostgresDao dao = AtScalePostgresDao.getInstance();
         QueryHistoryFileUtil queryHistoryFileUtil = new QueryHistoryFileUtil(dao);
         queryHistoryFileUtil.cacheXmlaQueries(model, query, AtScalePostgresDao.QueryLanguage.XMLA.getValue(), model);
+    }
+
+    protected void initAdditionalProperties() {
+        String regionProperty = "aws.region";
+        String secretsKeyProperty = "aws.secrets-key";
+        if(PropertiesManager.hasProperty(regionProperty) && PropertiesManager.hasProperty(secretsKeyProperty)) {
+            LOGGER.info("Loading additional properties from AWS Secrets Manager.");
+            String region = PropertiesManager.getCustomProperty(regionProperty);
+            String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProperty);
+            PropertiesManager.setCustomProperties(new AwsSecretsManager().loadSecrets(region, secretsKey));
+        } else {
+            LOGGER.warn("AWS region or secret-key property not found. Skipping loading additional properties from AWS Secrets Manager.");
+        }
     }
 }
