@@ -287,6 +287,94 @@ ConstantConcurrentUsersClosedInjectionStep: Maintains a constant number of users
 IncrementConcurrentUsersClosedInjectionStep: Gradually increases the number of users in increments over a specified duration.
 RampConcurrentUsersClosedInjectionStep: Starts with a specified number of users and ramps up to a target number over a given duration.
 ```
+## Managing Secrets
+If you are concerned about managing secrets such as usernames, passwords, and access tokens in the systems.properties file, the tooling supports injecting
+these values at runtime.  Our default implementation uses AwsSecretsManager.  However, the code can be can modified to do anything you require such as reading
+from environment variables, a secure vault, or interfacing with an alternate cloud provider's capability.  Our approach is simple, instead of declaring the properties
+in the systems.properties file, we allow them to be injected as a map of key value pairs at runtime.  This is achieved by calling the 
+setCustomProperties(java.util.Map<String, String> customProperties) method found in the com.atscale.java.utils.PropertiesManager class prior to attempting to read
+a property from the PropertiesManager.
+
+### To use AwsSecretsManager as the default implementation
+1. Create a secret in AwsSecretsManager with key value pairs for each secret you want to manage.
+2. In your systems.properties file add the following two properties:
+```
+aws.region=us-east-1
+aws.secrets-key=atscale-secrets
+```
+aws.region -- The AWS region where the secret is stored.
+aws.secrets-key -- The name of the secret in AwsSecretsManager.
+
+Within AwsSecretsManger we allow secrets to be stored as a map of key value pairs.  For example:
+```
+Associate the following JSON structure with the secret named atscale-secrets in AwsSecretsManager.
+{
+  "atscale.jdbc.username": "your_username",
+  "atscale.jdbc.password": "your_password",
+  "atscale.model1.jdbc.username": "your_username",
+  "atscale.model1.jdbc.password": "your_password"
+}
+```
+Alternetely, associate each key value pair individually in AwsSecretsManager.
+
+In the Simulation Executors fetch the secrets and pass them to the MavenTaskDto to augment the properties being read 
+from the systems.properties file.  For example:
+```
+ Fetch the secrets:
+    Map<String, String> secrets = new HashMap<>();
+        if(PropertiesManager.hasProperty("aws.region") && PropertiesManager.hasProperty("aws.secrets-key")) {
+            String region = PropertiesManager.getCustomProperty("aws.region");
+            String secretsKey = PropertiesManager.getCustomProperty("aws.secrets-key");
+            secrets.putAll(additionalProperties(region, secretsKey));
+        }
+        
+Then pass the properties to each task:
+    task1.setAdditionalProperties(secrets);
+    taks2.setAdditionalProperties(secrets);
+    ...
+```
+
+### Custom Implementations
+We provide a default implementation using AwsSecretsManager.  However, you can modify the code to implement your own secret management approach.
+Here are the two default implementations you can modify within your Simulation Executors:
+```
+All Simulaton Executors extend com.atscale.java.executors.SimulationExecutor which contains the following methods:
+  protected SecretsManager createSecretsManager() {
+        return new AwsSecretsManager();
+  }
+    
+  public Map<String, String> additionalProperties(String... params) {
+        String region = params[0];
+        String secretsKey = params[1];
+        SecretsManager secretsManager = createSecretsManager();
+        return secretsManager.loadSecrets(region, secretsKey);
+  }
+  
+  Notice in our default implementation we call the additionalProperties method to fetch the secrets.  This method takes
+  n parameters using the Java varargs feature.  Accordingly, your implementation can take any number of parameters you may need.
+  Also notice that the implemention of the additionalProperties method calls the createSecretsManager() method to get 
+  an instance of the com.atscale.java.utils.AwsSecretsManager.  This decorator delegates to the AWS SDK to fetch secrets
+  from the AWS Service.
+  
+  
+AwsSecretsManager implements SecretsManager.  The SecretsManager has one method to implement:
+    public interface SecretsManager {
+        Map<String, String> loadSecrets(String... params);
+    }
+```
+A custom implementation could be as simple as reading from environment variables.  For example:
+```
+@Override
+public Map<String, String> additionalProperties(String... params) {
+  Map<String, String> secrets = new HashMap<>();
+  secrets.put("atscale.jdbc.username", System.getenv("ATSCALE_JDBC_USERNAME"));
+  secrets.put("atscale.jdbc.password", System.getenv("ATSCALE_JDBC_PASSWORD"));
+  // Add additional secrets as needed
+  return secrets;
+}
+```
+
+## Conclusion
 
 So take a look at the example executors, customize the systems.properties file, and modify the executors to run one or more AtScale models in your environment.
 

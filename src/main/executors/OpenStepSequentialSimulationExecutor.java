@@ -7,11 +7,7 @@ import com.atscale.java.injectionsteps.OpenStep;
 import com.atscale.java.utils.PropertiesManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class OpenStepSequentialSimulationExecutor extends SequentialSimulationExecutor<OpenStep> {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenStepSequentialSimulationExecutor.class);
@@ -101,32 +97,38 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task5.setIngestionFileName("tpcds_benchmark_xmla_queries.csv", true);
         task5.setAdditionalProperties(additionalProperties);
 
-        return tasks;
+        return withAdditionalProperties(tasks);
     }
 
     /**
-     * Default implementation:
-     * Loads additional properties from AWS Secrets Manager if configured.
-     *
-     * Custom implementations:
-     * Change implementation for other secret management systems as needed.
-     * Can override the createSecretsManager method from the parent class hierarchy
-     * to provide a different SecretsManager implementation.
-     * Can override the additionalProperties method from the parent class hierarchy
-     * to change how properties are loaded.
+     * Default implementation.
+     *<p/>
+     * <p>Loads additional properties from AWS Secrets Manager if configured.</p>
+     * <p>Custom implementations: Change the implementation for other secret management systems as needed.
+     * You may override the {@code createSecretsManager} method in the parent class
+     * to provide a different SecretsManager implementation, or override the
+     * {@code additionalProperties} method to change how properties are loaded.</p>
      */
     private Map<String, String> getAdditionalProperties() {
         String regionProp = "aws.region";
         String secretsKeyProp = "aws.secrets-key";
-        Map<String, String> additionalProps = Collections.emptyMap();
+        Map<String, String> additionalProps = new HashMap<>();
         if (PropertiesManager.hasProperty(regionProp) && PropertiesManager.hasProperty(secretsKeyProp)) {
             LOGGER.info("Loading secrets from AWS");
             String region = PropertiesManager.getCustomProperty(regionProp);
             String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProp);
-            additionalProps = additionalProperties(region, secretsKey);
+            additionalProps.putAll(additionalProperties(region, secretsKey));
         } else {
             LOGGER.warn("AWS properties not configured. Using systems.properties.");
         }
         return additionalProps;
+    }
+
+    private  List<MavenTaskDto<OpenStep>> withAdditionalProperties(List<MavenTaskDto<OpenStep>> tasks) {
+        Map<String, String> additionalProperties = getAdditionalProperties();
+        for(MavenTaskDto<OpenStep> task : tasks) {
+            task.setAdditionalProperties(additionalProperties);
+        }
+        return tasks;
     }
 }

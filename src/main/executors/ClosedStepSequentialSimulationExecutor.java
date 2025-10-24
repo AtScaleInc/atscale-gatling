@@ -8,11 +8,7 @@ import com.atscale.java.injectionsteps.IncrementConcurrentUsersClosedInjectionSt
 import com.atscale.java.utils.PropertiesManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ClosedStepSequentialSimulationExecutor extends SequentialSimulationExecutor<ClosedStep> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClosedStepSequentialSimulationExecutor.class);
@@ -27,8 +23,6 @@ public class ClosedStepSequentialSimulationExecutor extends SequentialSimulation
 
     @Override
     protected List<MavenTaskDto<ClosedStep>> getSimulationTasks() {
-        Map<String, String> additionalProperties = getAdditionalProperties();
-
         List<MavenTaskDto<ClosedStep>> tasks = new ArrayList<>();
 
         List<ClosedStep> t1InjectionSteps = new ArrayList<>();
@@ -53,7 +47,6 @@ public class ClosedStepSequentialSimulationExecutor extends SequentialSimulation
         task1.setRunDescription("Internet Sales XMLA Model Tests");
         task1.setModel( "internet_sales");
         task1.setInjectionSteps(t1InjectionSteps);
-        task1.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<ClosedStep> task2 = new MavenTaskDto<>("Internet Sales JDBC User Simulation");
         tasks.add(task2);
@@ -65,7 +58,6 @@ public class ClosedStepSequentialSimulationExecutor extends SequentialSimulation
         task2.setRunDescription("Internet Sales JDBC Model Tests");
         task2.setModel( "internet_sales");
         task2.setInjectionSteps(t2InjectionSteps);
-        task2.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<ClosedStep> task3 = new MavenTaskDto<>("TPC-DS JDBC Stepped User Simulation");
         tasks.add(task3);
@@ -76,9 +68,8 @@ public class ClosedStepSequentialSimulationExecutor extends SequentialSimulation
         task3.setRunDescription("TPCDS JDBC Model Tests");
         task3.setModel("tpcds_benchmark_model");
         task3.setInjectionSteps(t3InjectionSteps);
-        task3.setAdditionalProperties(additionalProperties);
 
-         // Two example tasks for the Installer Version. Exclude by removing tasks.add as needed.
+        // Two example tasks for the Installer Version. Exclude by removing tasks.add as needed.
         MavenTaskDto<ClosedStep> task4 = new MavenTaskDto<>("Installer TPC-DS JDBC Simulation");
         //tasks.add(task4);
         task4.setMavenCommand("gatling:test");
@@ -88,7 +79,6 @@ public class ClosedStepSequentialSimulationExecutor extends SequentialSimulation
         task4.setRunDescription("TPCDS JDBC Model Tests");
         task4.setModel("TPC-DS Benchmark Model");
         task4.setInjectionSteps(constantUsersInjectionSteps);
-        task4.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<ClosedStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
         //tasks.add(task5);
@@ -99,34 +89,39 @@ public class ClosedStepSequentialSimulationExecutor extends SequentialSimulation
         task5.setRunDescription("TPCDS XMLA Model Tests");
         task5.setModel("TPC-DS Benchmark Model");
         task5.setInjectionSteps(constantUsersInjectionSteps);
-        task5.setAdditionalProperties(additionalProperties);
 
-        return tasks;
+        return withAdditionalProperties(tasks);
     }
 
     /**
-     * Default implementation:
-     * Loads additional properties from AWS Secrets Manager if configured.
-     *
-     * Custom implementations:
-     * Change implementation for other secret management systems as needed.
-     * Can override the createSecretsManager method from the parent class hierarchy
-     * to provide a different SecretsManager implementation.
-     * Can override the additionalProperties method from the parent class hierarchy
-     * to change how properties are loaded.
+     * Default implementation.
+     *<p/>
+     * <p>Loads additional properties from AWS Secrets Manager if configured.</p>
+     * <p>Custom implementations: Change the implementation for other secret management systems as needed.
+     * You may override the {@code createSecretsManager} method in the parent class
+     * to provide a different SecretsManager implementation, or override the
+     * {@code additionalProperties} method to change how properties are loaded.</p>
      */
     private Map<String, String> getAdditionalProperties() {
         String regionProp = "aws.region";
         String secretsKeyProp = "aws.secrets-key";
-        Map<String, String> additionalProps = Collections.emptyMap();
+        Map<String, String> additionalProps = new HashMap<>();
         if (PropertiesManager.hasProperty(regionProp) && PropertiesManager.hasProperty(secretsKeyProp)) {
             LOGGER.info("Loading secrets from AWS");
             String region = PropertiesManager.getCustomProperty(regionProp);
             String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProp);
-            additionalProps = additionalProperties(region, secretsKey);
+            additionalProps.putAll(additionalProperties(region, secretsKey));
         } else {
             LOGGER.warn("AWS properties not configured. Using systems.properties.");
         }
         return additionalProps;
+    }
+
+    private  List<MavenTaskDto<ClosedStep>> withAdditionalProperties(List<MavenTaskDto<ClosedStep>> tasks) {
+        Map<String, String> additionalProperties = getAdditionalProperties();
+        for(MavenTaskDto<ClosedStep> task : tasks) {
+            task.setAdditionalProperties(additionalProperties);
+        }
+        return tasks;
     }
 }
