@@ -305,7 +305,7 @@ aws.secrets-key=atscale-secrets
 aws.region -- The AWS region where the secret is stored.
 aws.secrets-key -- The name of the secret in AwsSecretsManager.
 
-Within AwsSecretsManger we allow secrets to be stored as a map of key value pairs.  For example:
+Within AwsSecretsManager we allow secrets to be stored as a map of key value pairs.  For example:
 ```
 Associate the following JSON structure with the secret named atscale-secrets in AwsSecretsManager.
 {
