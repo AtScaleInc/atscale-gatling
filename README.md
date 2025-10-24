@@ -315,7 +315,7 @@ Associate the following JSON structure with the secret named atscale-secrets in 
   "atscale.model1.jdbc.password": "your_password"
 }
 ```
-Alternetely, associate each key value pair individually in AwsSecretsManager.
+Alternatively, associate each key value pair individually in AwsSecretsManager.
 
 In the Simulation Executors fetch the secrets and pass them to the MavenTaskDto to augment the properties being read 
 from the systems.properties file.  For example:
@@ -330,7 +330,7 @@ from the systems.properties file.  For example:
         
 Then pass the properties to each task:
     task1.setAdditionalProperties(secrets);
-    taks2.setAdditionalProperties(secrets);
+    task2.setAdditionalProperties(secrets);
     ...
 ```
 

@@ -21,8 +21,6 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
     }
 
     protected List<MavenTaskDto<OpenStep>> getSimulationTasks() {
-        Map<String, String> additionalProperties = getAdditionalProperties();
-
         List<MavenTaskDto<OpenStep>> tasks = new ArrayList<>();
 
         List<OpenStep> t1InjectionSteps = new ArrayList<>();
@@ -49,7 +47,6 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task1.setRunDescription("Internet Sales XMLA Model Tests");
         task1.setModel( "internet_sales");
         task1.setInjectionSteps(t1InjectionSteps);
-        task1.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<OpenStep> task2 = new MavenTaskDto<>("Internet Sales JDBC Simulation");
         tasks.add(task2);
@@ -60,7 +57,6 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task2.setRunDescription("Internet Sales JDBC Model Tests");
         task2.setModel("internet_sales");
         task2.setInjectionSteps(t2InjectionSteps);
-        task2.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<OpenStep> task3 = new MavenTaskDto<>("TPC-DS JDBC Simulation");
         tasks.add(task3);
@@ -70,7 +66,6 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task3.setRunDescription("TPCDS JDBC Model Tests");
         task3.setModel("tpcds_benchmark_model");
         task3.setInjectionSteps(t3InjectionSteps);
-        task3.setAdditionalProperties(additionalProperties);
         
         // Two example tasks for the Installer Version. Exclude by removing tasks.add as needed.
         MavenTaskDto<OpenStep> task4 = new MavenTaskDto<>("Installer TPC-DS JDBC Simulation");
@@ -83,7 +78,6 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task4.setModel("TPC-DS Benchmark Model");
         task4.setInjectionSteps(atOnceInjectionSteps);
         task4.setIngestionFileName("tpcds_benchmark_jdbc_queries.csv", false);
-        task4.setAdditionalProperties(additionalProperties);
 
         MavenTaskDto<OpenStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
         //tasks.add(task5);
@@ -95,7 +89,6 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         task5.setModel("TPC-DS Benchmark Model");
         task5.setInjectionSteps(atOnceInjectionSteps);
         task5.setIngestionFileName("tpcds_benchmark_xmla_queries.csv", true);
-        task5.setAdditionalProperties(additionalProperties);
 
         return withAdditionalProperties(tasks);
     }
