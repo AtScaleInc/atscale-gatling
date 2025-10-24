@@ -352,7 +352,7 @@ All Simulation Executors extend com.atscale.java.executors.SimulationExecutor wh
   
   Notice in our default implementation we call the additionalProperties method to fetch the secrets.  This method takes
   n parameters using the Java varargs feature.  Accordingly, your implementation can take any number of parameters you may need.
-  Also notice that the implemention of the additionalProperties method calls the createSecretsManager() method to get 
+  Also notice that the implementation of the additionalProperties method calls the createSecretsManager() method to get 
   an instance of the com.atscale.java.utils.AwsSecretsManager.  This decorator delegates to the AWS SDK to fetch secrets
   from the AWS Service.
   
