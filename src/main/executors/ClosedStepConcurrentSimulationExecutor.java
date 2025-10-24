@@ -1,5 +1,6 @@
 package executors;
 
+import com.atscale.java.utils.PropertiesManager;
 import com.atscale.java.executors.ConcurrentSimulationExecutor;
 import com.atscale.java.executors.MavenTaskDto;
 import com.atscale.java.injectionsteps.ClosedStep;
@@ -7,9 +8,7 @@ import com.atscale.java.injectionsteps.ConstantConcurrentUsersClosedInjectionSte
 import com.atscale.java.injectionsteps.IncrementConcurrentUsersClosedInjectionStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ClosedStepConcurrentSimulationExecutor extends ConcurrentSimulationExecutor<ClosedStep> {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClosedStepConcurrentSimulationExecutor.class);
@@ -78,7 +77,6 @@ public class ClosedStepConcurrentSimulationExecutor extends ConcurrentSimulation
         task4.setRunDescription("TPCDS JDBC Model Tests");
         task4.setModel("TPC-DS Benchmark Model");
         task4.setInjectionSteps(constantUsersInjectionSteps);
-          
 
         MavenTaskDto<ClosedStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
         //tasks.add(task5);
@@ -90,8 +88,39 @@ public class ClosedStepConcurrentSimulationExecutor extends ConcurrentSimulation
         task5.setModel("TPC-DS Benchmark Model");
         task5.setInjectionSteps(constantUsersInjectionSteps);
 
-        return tasks;
+        return withAdditionalProperties(tasks);
     }
 
+    /**
+     * Default implementation.
+     *<p/>
+     * <p>Loads additional properties from AWS Secrets Manager if configured.</p>
+     * <p>Custom implementations: Change the implementation for other secret management systems as needed.
+     * You may override the {@code createSecretsManager} method in the parent class
+     * to provide a different SecretsManager implementation, or override the
+     * {@code additionalProperties} method to change how properties are loaded.</p>
+     */
+    private Map<String, String> getAdditionalProperties() {
+        String regionProp = "aws.region";
+        String secretsKeyProp = "aws.secrets-key";
+        Map<String, String> additionalProps = new HashMap<>();
+        if (PropertiesManager.hasProperty(regionProp) && PropertiesManager.hasProperty(secretsKeyProp)) {
+            LOGGER.info("Loading secrets from AWS");
+            String region = PropertiesManager.getCustomProperty(regionProp);
+            String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProp);
+            additionalProps.putAll(additionalProperties(region, secretsKey));
+        } else {
+            LOGGER.warn("AWS properties not configured. Using systems.properties.");
+        }
+        return additionalProps;
+    }
+
+    private List<MavenTaskDto<ClosedStep>> withAdditionalProperties(List<MavenTaskDto<ClosedStep>> tasks) {
+        Map<String, String> additionalProperties = getAdditionalProperties();
+        for(MavenTaskDto<ClosedStep> task : tasks) {
+            task.setAdditionalProperties(additionalProperties);
+        }
+        return tasks;
+    }
    
 }
