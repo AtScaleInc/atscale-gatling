@@ -152,7 +152,7 @@ public class CustomQueryExtractExecutor {
             String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProperty);
             PropertiesManager.setCustomProperties(new AwsSecretsManager().loadSecrets(region, secretsKey));
         } else {
-            LOGGER.warn("AWS region or secret-key property not found. Skipping loading additional properties from AWS Secrets Manager.");
+            LOGGER.warn("AWS region or secrets-key property not found. Skipping loading additional properties from AWS Secrets Manager.");
         }
     }
 }
