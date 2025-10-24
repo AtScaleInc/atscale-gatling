@@ -338,7 +338,7 @@ Then pass the properties to each task:
 We provide a default implementation using AwsSecretsManager.  However, you can modify the code to implement your own secret management approach.
 Here are the two default implementations you can modify within your Simulation Executors:
 ```
-All Simulaton Executors extend com.atscale.java.executors.SimulationExecutor which contains the following methods:
+All Simulation Executors extend com.atscale.java.executors.SimulationExecutor which contains the following methods:
   protected SecretsManager createSecretsManager() {
         return new AwsSecretsManager();
   }
