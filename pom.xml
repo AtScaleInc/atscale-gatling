@@ -284,6 +284,12 @@
            <artifactId>slf4j-api</artifactId>
            <version>2.0.17</version>
        </dependency>
+        <!-- For Snowflake JDBC -->
+        <dependency>
+            <groupId>net.snowflake</groupId>
+            <artifactId>snowflake-jdbc</artifactId>
+            <version>3.27.0</version>
+        </dependency>
         <!-- Support JDBC for AtScale Installer Version requires Hive JDBC Uber Jar downloaded to /lib.
         It is sourced from https://github.com/timveil/hive-jdbc-uber-jar/releases
         Install this from /lib by running the ConfigurationExecutor -->
