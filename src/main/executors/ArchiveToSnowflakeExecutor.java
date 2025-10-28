@@ -397,7 +397,7 @@ public class ArchiveToSnowflakeExecutor {
 
     protected void initAdditionalProperties() {
         AdditionalPropertiesLoader loader = new AdditionalPropertiesLoader();
-        PropertiesManager.setCustomProperties(loader.fetchAdditionalProperties());
+        PropertiesManager.setCustomProperties(loader.fetchAdditionalProperties(AdditionalPropertiesLoader.SecretsManagerType.AWS));
     }
 
     private static Map<String, String> parseArgs(String[] args) {

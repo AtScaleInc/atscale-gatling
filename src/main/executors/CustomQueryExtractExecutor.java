@@ -1,7 +1,6 @@
 package executors;
 
 import com.atscale.java.dao.AtScalePostgresDao;
-import com.atscale.java.utils.AwsSecretsManager;
 import com.atscale.java.utils.PropertiesManager;
 import com.atscale.java.utils.QueryHistoryFileUtil;
 import org.slf4j.Logger;
@@ -88,6 +87,7 @@ public class CustomQueryExtractExecutor {
         queryHistoryFileUtil.cacheJdbcQueries(model, query, AtScalePostgresDao.QueryLanguage.SQL.getValue(), model);
     }
 
+    @SuppressWarnings("all")
     private void cacheXmlaQueries(String model) {
         // Implement the logic to cache XMLA queries
         LOGGER.info("Caching XMLA queries...");
@@ -144,15 +144,7 @@ public class CustomQueryExtractExecutor {
     }
 
     private void initAdditionalProperties() {
-        String regionProperty = "aws.region";
-        String secretsKeyProperty = "aws.secrets-key";
-        if(PropertiesManager.hasProperty(regionProperty) && PropertiesManager.hasProperty(secretsKeyProperty)) {
-            LOGGER.info("Loading additional properties from AWS Secrets Manager.");
-            String region = PropertiesManager.getCustomProperty(regionProperty);
-            String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProperty);
-            PropertiesManager.setCustomProperties(new AwsSecretsManager().loadSecrets(region, secretsKey));
-        } else {
-            LOGGER.warn("AWS region or secrets-key property not found. Skipping loading additional properties from AWS Secrets Manager.");
-        }
+        AdditionalPropertiesLoader loader = new AdditionalPropertiesLoader();
+        PropertiesManager.setCustomProperties(loader.fetchAdditionalProperties(AdditionalPropertiesLoader.SecretsManagerType.AWS));
     }
 }

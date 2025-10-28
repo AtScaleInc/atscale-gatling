@@ -10,7 +10,30 @@ import java.util.HashMap;
 public class AdditionalPropertiesLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(AdditionalPropertiesLoader.class);
 
-    protected Map<String, String> fetchAdditionalProperties() {
+    public enum SecretsManagerType {
+        AWS("AWS");
+
+        private final String value;
+
+        SecretsManagerType(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    @SuppressWarnings("all")
+    protected Map<String, String> fetchAdditionalProperties(SecretsManagerType type) {
+        if(type == SecretsManagerType.AWS) {
+            return fetchSecretsFromAws();
+        }
+        LOGGER.warn("Unsupported Secrets Manager type: {}. No additional properties loaded.", type.getValue());
+        return new HashMap<>();
+    }
+
+    private Map<String, String> fetchSecretsFromAws() {
         String regionProperty = "aws.region";
         String secretsKeyProperty = "aws.secrets-key";
         if(PropertiesManager.hasProperty(regionProperty) && PropertiesManager.hasProperty(secretsKeyProperty)) {
