@@ -373,6 +373,17 @@ public Map<String, String> additionalProperties(String... params) {
   return secrets;
 }
 ```
+## Processing Outputs
+The run_logs can be processed using Python Notebooks.
+From the root directory activate the virtual environment for Python then run the python script.
+The script uses Papermill to execute a Python Notebook which processes the run logs.
+The advantage of this approach is the output notebook can be run manually to understand what is happening or to troubeshoot issues.
+
+.venv/bin/activate
+
+./scripts/Python/run_notebook.py -i notebooks/gatling_results_processing.ipynb -o notebooks/gatling_results_processing.executed.ipynb --input_log run_logs/b.log
+
+
 
 ## Conclusion
 
