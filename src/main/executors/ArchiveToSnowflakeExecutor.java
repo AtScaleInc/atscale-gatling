@@ -51,19 +51,11 @@ public class ArchiveToSnowflakeExecutor {
             exec(conn, "PUT '" + fileUri.replace("'", "''") + "' @" + STAGE + " AUTO_COMPRESS=TRUE OVERWRITE=TRUE");
             LOGGER.info("Uploaded file {} to stage {}", fileUri, STAGE);
 
+
+
             // 3) Copy staged file into GATLING_RAW_SQL_LOGS
-            exec(conn, """
-                COPY INTO GATLING_RAW_SQL_LOGS (RAW_LINE, SRC_FILENAME, SRC_ROW_NUMBER)
-                FROM (
-                  SELECT
-                    $1 AS RAW_LINE,
-                    METADATA$FILENAME AS SRC_FILENAME,
-                    METADATA$FILE_ROW_NUMBER AS SRC_ROW_NUMBER
-                  FROM @GATLING_LOGS_STAGE
-                )
-                FILE_FORMAT = (FORMAT_NAME = GATLING_WHOLE_LINE_FMT)
-                ON_ERROR = 'CONTINUE';
-                """);
+            String stagedFileName = String.format("%s.%s", dataFile.getFileName().toString().replace("'", "''"), "gz");
+            exec(conn, getInsertIntoRawSqlLogsSql(stagedFileName));
             LOGGER.info("Copied data from stage {} into table {}", STAGE, RAW_TABLE);
 
             // 4) Insert parsed rows into GATLING_SQL_LOGS
@@ -267,6 +259,23 @@ public class ArchiveToSnowflakeExecutor {
         }
 
         return props;
+    }
+
+    private static String getInsertIntoRawSqlLogsSql(String fileName) {
+        return String.format("""
+              COPY INTO GATLING_RAW_SQL_LOGS (RAW_LINE, SRC_FILENAME, SRC_ROW_NUMBER)
+              FROM (
+                SELECT
+                  $1 AS RAW_LINE,
+                  METADATA$FILENAME AS SRC_FILENAME,
+                  METADATA$FILE_ROW_NUMBER AS SRC_ROW_NUMBER
+                FROM @GATLING_LOGS_STAGE
+              )
+              FILES = ('%s')
+              FILE_FORMAT = (FORMAT_NAME = GATLING_WHOLE_LINE_FMT)
+              PURGE=TRUE
+              ON_ERROR = 'CONTINUE';
+            """, fileName);
     }
 
     /** INSERT from RAW -> SQL_LOGS (parsing by tab-delimited fields). Adjust positions if needed. */
