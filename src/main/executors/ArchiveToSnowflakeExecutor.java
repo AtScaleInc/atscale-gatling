@@ -7,9 +7,11 @@ import org.slf4j.LoggerFactory;
 import java.util.Properties;
 import java.util.Locale;
 import java.util.Map;
+import java.util.List;
 import java.util.HashMap;
 import java.nio.file.Path;
 import java.sql.*;
+import utils.RunLogUtils;
 
 public class ArchiveToSnowflakeExecutor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArchiveToSnowflakeExecutor.class);
@@ -38,39 +40,125 @@ public class ArchiveToSnowflakeExecutor {
         String jdbcUrl = getSnowflakeURL();
         Properties connectionProps = getConnectionProperties();
 
-        LOGGER.info("Connecting to Snowflake with URL: {}", jdbcUrl);
+        List<String> runIds = RunLogUtils.extractGatlingRunIds(dataFile);
+        LOGGER.info("Found {} unique Gatling Run IDs in log file {}.", runIds.size(), dataFile);
 
+        LOGGER.info("Connecting to Snowflake with URL: {}", jdbcUrl);
         try (Connection conn = DriverManager.getConnection(jdbcUrl, connectionProps)) {
             LOGGER.info("Connected to Snowflake successfully.");
 
-            // 1) Ensure required objects exist
-            createIfNotExistsObjects(conn);
+            // Save original auto-commit and start transaction control for DML
+            boolean originalAutoCommit = conn.getAutoCommit();
+            boolean committed = false;
 
-            // 2) Upload local file to stage
-            String fileUri = dataFile.toUri().toString();
-            exec(conn, "PUT '" + fileUri.replace("'", "''") + "' @" + STAGE + " AUTO_COMPRESS=TRUE OVERWRITE=TRUE");
-            LOGGER.info("Uploaded file {} to stage {}", fileUri, STAGE);
+            // Use a unique staged filename so we can clean it up on failure
+            String stagedFileName = String.format("%s.%s",
+                    dataFile.getFileName().toString().replace("'", "''"), "gz");
+            String fileUri = dataFile.toUri().toString().replace("'", "''");
 
+            try {
+                // 0) Ensure required objects exist. DDL may be best committed separately.
+                try {
+                    createIfNotExistsObjects(conn);
+                    // commit DDL work so that subsequent transactional DML is isolated
+                    conn.commit();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                }
 
+                // 1) Upload local file to stage (PUT is not transactional)
+                exec(conn, "PUT '" + fileUri + "' @" + STAGE + " AUTO_COMPRESS=TRUE OVERWRITE=TRUE");
+                LOGGER.info("Uploaded file {} to stage {} as {}", fileUri, STAGE, stagedFileName);
 
-            // 3) Copy staged file into GATLING_RAW_SQL_LOGS
-            String stagedFileName = String.format("%s.%s", dataFile.getFileName().toString().replace("'", "''"), "gz");
-            exec(conn, getInsertIntoRawSqlLogsSql(stagedFileName));
-            LOGGER.info("Copied data from stage {} into table {}", STAGE, RAW_TABLE);
+                // 2) Begin DML transaction: COPY + INSERTs should be atomic together
+                conn.setAutoCommit(false);
 
-            // 4) Insert parsed rows into GATLING_SQL_LOGS
-            exec(conn, getInsertIntoSqlLogsSql());
-            LOGGER.info("Inserted parsed rows into GATLING_SQL_LOGS from {}", "GATLING_RAW_SQL_LOGS");
+                // 3) COPY into RAW table (fail the whole transaction on any load error)
+                exec(conn, getInsertIntoRawSqlLogsSql(stagedFileName));
+                LOGGER.info("Copied data from stage {} into table {}", STAGE, RAW_TABLE);
 
-            // 5) Insert header rows (ROWNUMBER is NULL) into GATLING_SQL_HEADERS
-            exec(conn, getInsertIntoHeadersSql());
-            LOGGER.info("Inserted header rows into GATLING_SQL_HEADERS from gatling_sql_logs");
+                // 4) Insert parsed rows into GATLING_SQL_LOGS
+                exec(conn, getInsertIntoSqlLogsSql(stagedFileName));
+                LOGGER.info("Inserted parsed rows into GATLING_SQL_LOGS from {}", "GATLING_RAW_SQL_LOGS");
 
-            // 6) Insert detail rows (ROWNUMBER is NOT NULL) into GATLING_SQL_DETAILS
-            exec(conn, getInsertIntoDetailsSql());
-            LOGGER.info("Inserted detail rows into GATLING_SQL_DETAILS from gatling_sql_logs");
+                // 5) PreparedStatement batches for headers
+                if (!runIds.isEmpty()) {
+                    try (PreparedStatement ps = conn.prepareStatement(getInsertIntoHeadersSql())) {
+                        final int batchSize = 1000;
+                        int count = 0;
+                        for (String runId : runIds) {
+                            ps.setString(1, runId);
+                            ps.addBatch();
+                            if (++count % batchSize == 0) {
+                                ps.executeBatch();
+                                LOGGER.debug("Inserted header batch of {} runIds", batchSize);
+                            }
+                        }
+                        if (count % batchSize != 0) {
+                            ps.executeBatch();
+                            LOGGER.debug("Inserted final header batch of {} runIds", count % batchSize);
+                        }
+                    }
+                    LOGGER.info("Inserted header rows into GATLING_SQL_HEADERS from gatling_sql_logs");
 
-            LOGGER.info("✅ Load complete: RAW -> SQL_LOGS -> (HEADERS, DETAILS).");
+                    // 6) PreparedStatement batches for details
+                    try (PreparedStatement ps = conn.prepareStatement(getInsertIntoDetailsSql())) {
+                        final int batchSize = 1000;
+                        int count = 0;
+                        for (String runId : runIds) {
+                            ps.setString(1, runId);
+                            ps.addBatch();
+                            if (++count % batchSize == 0) {
+                                ps.executeBatch();
+                                LOGGER.debug("Inserted details batch of {} runIds", batchSize);
+                            }
+                        }
+                        if (count % batchSize != 0) {
+                            ps.executeBatch();
+                            LOGGER.debug("Inserted final details batch of {} runIds", count % batchSize);
+                        }
+                    }
+                    LOGGER.info("Inserted detail rows into GATLING_SQL_DETAILS from gatling_sql_logs");
+                } else {
+                    LOGGER.info("No runIds found; skipping header/details insertion.");
+                }
+
+                // 7) Commit all DML together
+                conn.commit();
+                committed = true;
+
+                // 8) Cleanup staged file after success to avoid orphaned files
+                try {
+                    // Use stage/path syntax: REMOVE @<stage>/<filename>
+                    exec(conn, "REMOVE @" + STAGE + "/" + stagedFileName);
+                } catch (SQLException cleanupEx) {
+                    LOGGER.warn("Failed to remove staged file {}: {}", stagedFileName, cleanupEx.getMessage());
+                }
+
+                LOGGER.info("✅ Load complete: RAW -> SQL_LOGS -> (HEADERS, DETAILS).");
+            } catch (SQLException e) {
+                // rollback transactional DML
+                try {
+                    if (!conn.getAutoCommit()) conn.rollback();
+                } catch (SQLException rbEx) {
+                    LOGGER.error("Rollback failed: {}", rbEx.getMessage());
+                }
+                // Attempt to remove staged file since PUT is not transactional
+                try {
+                    exec(conn, "REMOVE @" + STAGE + "/" + stagedFileName);
+                } catch (SQLException cleanupEx) {
+                    LOGGER.warn("Failed to remove staged file after rollback {}: {}", stagedFileName, cleanupEx.getMessage());
+                }
+                throw e;
+            } finally {
+                // Restore auto-commit to its original value
+                try {
+                    conn.setAutoCommit(originalAutoCommit);
+                } catch (SQLException ex) {
+                    LOGGER.warn("Failed to restore auto-commit: {}", ex.getMessage());
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to execute Snowflake operations", e);
         }
@@ -274,13 +362,13 @@ public class ArchiveToSnowflakeExecutor {
               FILES = ('%s')
               FILE_FORMAT = (FORMAT_NAME = GATLING_WHOLE_LINE_FMT)
               PURGE=TRUE
-              ON_ERROR = 'CONTINUE';
+              ON_ERROR = 'ABORT_STATEMENT';
             """, fileName);
     }
 
     /** INSERT from RAW -> SQL_LOGS (parsing by tab-delimited fields). Adjust positions if needed. */
-    private static String getInsertIntoSqlLogsSql() {
-        return """
+    private static String getInsertIntoSqlLogsSql(String fileName) {
+        return String.format("""
             INSERT INTO GATLING_SQL_LOGS (
                 TS, LEVEL, LOGGER, MESSAGE_KIND, GATLING_RUN_ID, STATUS,
                 GATLING_SESSION_ID, MODEL, QUERY_NAME, QUERY_HASH,
@@ -322,8 +410,9 @@ public class ArchiveToSnowflakeExecutor {
                 /* lineage + raw */
                 src_filename,
                 src_row_number,
-                raw_line            FROM GATLING_RAW_SQL_LOGS;
-            """;
+                raw_line            FROM GATLING_RAW_SQL_LOGS
+                WHERE src_filename = '%s';
+            """, fileName);
     }
 
     /** Step 5: INSERT headers (ROWNUMBER IS NULL) into GATLING_SQL_HEADERS. */
@@ -354,7 +443,8 @@ public class ArchiveToSnowflakeExecutor {
                 src_row_number,
                 raw_line
             FROM gatling_sql_logs
-            WHERE rownumber IS NULL;
+            WHERE rownumber IS NULL
+            AND GATLING_RUN_ID = ?;
             """;
     }
 
@@ -394,7 +484,8 @@ public class ArchiveToSnowflakeExecutor {
                 src_row_number,
                 raw_line
             FROM gatling_sql_logs
-            WHERE rownumber IS NOT NULL;
+            WHERE rownumber IS NOT NULL
+            AND GATLING_RUN_ID = ?;
             """;
     }
 
