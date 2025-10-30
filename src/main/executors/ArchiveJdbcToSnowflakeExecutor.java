@@ -13,26 +13,26 @@ import java.nio.file.Path;
 import java.sql.*;
 import utils.RunLogUtils;
 
-public class ArchiveToSnowflakeExecutor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ArchiveToSnowflakeExecutor.class);
+public class ArchiveJdbcToSnowflakeExecutor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ArchiveJdbcToSnowflakeExecutor.class);
     private static final String STAGE = "GATLING_LOGS_STAGE";
     private static final String RAW_TABLE = "GATLING_RAW_SQL_LOGS";
 
 
 
     public static void main(String[] args) {
-        LOGGER.info("ArchiveToSnowflakeExecutor started.");
+        LOGGER.info("ArchiveJdbcToSnowflakeExecutor started.");
         try {
             Map<String, String> arguments = parseArgs(args);
             Path dataFile = Path.of(arguments.get("data_file"));
 
-            ArchiveToSnowflakeExecutor executor = new ArchiveToSnowflakeExecutor();
+            ArchiveJdbcToSnowflakeExecutor executor = new ArchiveJdbcToSnowflakeExecutor();
             executor.execute(dataFile);
         } catch (Exception e) {
-            LOGGER.error("Error during ArchiveToSnowflakeExecutor execution", e);
-            throw new RuntimeException("ArchiveToSnowflakeExecutor failed", e);
+            LOGGER.error("Error during ArchiveJdbcToSnowflakeExecutor execution", e);
+            throw new RuntimeException("ArchiveJdbcToSnowflakeExecutor failed", e);
         }
-        LOGGER.info("ArchiveToSnowflakeExecutor completed.");
+        LOGGER.info("ArchiveJdbcToSnowflakeExecutor completed.");
     }
 
     protected void execute(Path dataFile) {
@@ -49,7 +49,6 @@ public class ArchiveToSnowflakeExecutor {
 
             // Save original auto-commit and start transaction control for DML
             boolean originalAutoCommit = conn.getAutoCommit();
-            boolean committed = false;
 
             // Use a unique staged filename so we can clean it up on failure
             String stagedFileName = String.format("%s.%s",
@@ -79,7 +78,40 @@ public class ArchiveToSnowflakeExecutor {
                 LOGGER.info("Copied data from stage {} into table {}", STAGE, RAW_TABLE);
 
                 // 4) Insert parsed rows into GATLING_SQL_LOGS
-                exec(conn, getInsertIntoSqlLogsSql(stagedFileName));
+                //exec(conn, getInsertIntoSqlLogsSql(stagedFileName));
+                try(PreparedStatement ps = conn.prepareStatement(getInsertIntoSqlLogsSql(stagedFileName))) {
+                    final int batchSize = 1000;
+                    int rowsInserted = 0;
+                    int count = 0;
+                    for (String runId : runIds) {
+                        String pattern = "%gatlingRunId='" + runId + "'%";
+                        ps.setString(1, pattern);
+                        ps.addBatch();
+                        if (++count % batchSize == 0) {
+                            int[] results = ps.executeBatch();
+                            // sum returned update counts; treat SUCCESS_NO_INFO as +1
+                            for (int r : results) {
+                                if (r >= 0) rowsInserted += r;
+                                else if (r == Statement.SUCCESS_NO_INFO) rowsInserted += 1;
+                                else LOGGER.warn("Batch element reported EXECUTE_FAILED");
+                            }
+                            LOGGER.debug("Inserted sql_logs batch of {} runIds", batchSize);
+                        }
+                    }
+                    if (count % batchSize != 0) {
+                        int[] results = ps.executeBatch();
+                        for (int r : results) {
+                            if (r >= 0) rowsInserted += r;
+                            else if (r == Statement.SUCCESS_NO_INFO) rowsInserted += 1;
+                            else LOGGER.warn("Batch element reported EXECUTE_FAILED");
+                        }
+                        LOGGER.debug("Inserted final sql_logs batch of {} runIds", count % batchSize);
+                    }
+                    LOGGER.info("Inserted {} parsed rows into GATLING_SQL_LOGS from {}", rowsInserted, "GATLING_RAW_SQL_LOGS");
+                }
+
+
+
                 LOGGER.info("Inserted parsed rows into GATLING_SQL_LOGS from {}", "GATLING_RAW_SQL_LOGS");
 
                 // 5) PreparedStatement batches for headers
@@ -126,7 +158,6 @@ public class ArchiveToSnowflakeExecutor {
 
                 // 7) Commit all DML together
                 conn.commit();
-                committed = true;
 
                 // 8) Cleanup staged file after success to avoid orphaned files
                 try {
@@ -411,7 +442,8 @@ public class ArchiveToSnowflakeExecutor {
                 src_filename,
                 src_row_number,
                 raw_line            FROM GATLING_RAW_SQL_LOGS
-                WHERE src_filename = '%s';
+                WHERE src_filename = '%s'
+                AND raw_line LIKE ?;
             """, fileName);
     }
 
@@ -488,7 +520,6 @@ public class ArchiveToSnowflakeExecutor {
             AND GATLING_RUN_ID = ?;
             """;
     }
-
 
     private String getSnowflakeURL() {
         String account = PropertiesManager.getCustomProperty("snowflake.archive.account");
