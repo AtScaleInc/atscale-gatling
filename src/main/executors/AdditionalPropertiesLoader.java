@@ -40,7 +40,8 @@ public class AdditionalPropertiesLoader {
             LOGGER.info("Loading additional properties from AWS Secrets Manager.");
             String region = PropertiesManager.getCustomProperty(regionProperty);
             String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProperty);
-            return new AwsSecretsManager().loadSecrets(region, secretsKey);
+            AwsSecretsManager sm = new AwsSecretsManager();
+            return sm.loadSecrets(region, secretsKey);
         }
         LOGGER.warn("AWS region or secrets-key property not found. Skipping loading additional properties from AWS Secrets Manager.");
         return new HashMap<>();

@@ -4,11 +4,7 @@ import com.atscale.java.utils.PropertiesManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.Properties;
-import java.util.Locale;
-import java.util.Map;
-import java.util.List;
-import java.util.HashMap;
+import java.util.*;
 import java.nio.file.Path;
 import java.sql.*;
 import utils.RunLogUtils;
@@ -18,8 +14,6 @@ public class ArchiveJdbcToSnowflakeExecutor {
     private static final String STAGE = "GATLING_LOGS_STAGE";
     private static final String RAW_TABLE = "GATLING_RAW_SQL_LOGS";
 
-
-
     public static void main(String[] args) {
         LOGGER.info("ArchiveJdbcToSnowflakeExecutor started.");
         try {
@@ -27,16 +21,23 @@ public class ArchiveJdbcToSnowflakeExecutor {
             Path dataFile = Path.of(arguments.get("data_file"));
 
             ArchiveJdbcToSnowflakeExecutor executor = new ArchiveJdbcToSnowflakeExecutor();
+            executor.initAdditionalProperties();
             executor.execute(dataFile);
         } catch (Exception e) {
             LOGGER.error("Error during ArchiveJdbcToSnowflakeExecutor execution", e);
             throw new RuntimeException("ArchiveJdbcToSnowflakeExecutor failed", e);
         }
         LOGGER.info("ArchiveJdbcToSnowflakeExecutor completed.");
+        try{
+            Thread.sleep(java.time.Duration.ofSeconds(30).toMillis());
+        }catch(InterruptedException ie){
+            Thread.currentThread().interrupt();
+        }
+
+        org.apache.logging.log4j.LogManager.shutdown();
     }
 
     protected void execute(Path dataFile) {
-        initAdditionalProperties();
         String jdbcUrl = getSnowflakeURL();
         Properties connectionProps = getConnectionProperties();
 
@@ -78,7 +79,6 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 LOGGER.info("Copied data from stage {} into table {}", STAGE, RAW_TABLE);
 
                 // 4) Insert parsed rows into GATLING_SQL_LOGS
-                //exec(conn, getInsertIntoSqlLogsSql(stagedFileName));
                 try(PreparedStatement ps = conn.prepareStatement(getInsertIntoSqlLogsSql(stagedFileName))) {
                     final int batchSize = 1000;
                     int rowsInserted = 0;
@@ -109,10 +109,6 @@ public class ArchiveJdbcToSnowflakeExecutor {
                     }
                     LOGGER.info("Inserted {} parsed rows into GATLING_SQL_LOGS from {}", rowsInserted, "GATLING_RAW_SQL_LOGS");
                 }
-
-
-
-                LOGGER.info("Inserted parsed rows into GATLING_SQL_LOGS from {}", "GATLING_RAW_SQL_LOGS");
 
                 // 5) PreparedStatement batches for headers
                 if (!runIds.isEmpty()) {

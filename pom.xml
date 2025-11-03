@@ -168,6 +168,19 @@
                             <classpathScope>runtime</classpathScope>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>archive-jdbc-to-snowflake</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>executors.ArchiveJdbcToSnowflakeExecutor</mainClass>
+                            <classpathScope>runtime</classpathScope>
+                            <arguments>
+                                <argument>--data_file=run_logs/internet_sales_jdbc.log</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <!-- Surefire runs unit tests during the build process.  Automatically detects and executes tests -->
