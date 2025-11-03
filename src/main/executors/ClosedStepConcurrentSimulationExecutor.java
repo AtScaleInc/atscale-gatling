@@ -1,6 +1,5 @@
 package executors;
 
-import com.atscale.java.utils.PropertiesManager;
 import com.atscale.java.executors.ConcurrentSimulationExecutor;
 import com.atscale.java.executors.MavenTaskDto;
 import com.atscale.java.injectionsteps.ClosedStep;
@@ -101,18 +100,8 @@ public class ClosedStepConcurrentSimulationExecutor extends ConcurrentSimulation
      * {@code additionalProperties} method to change how properties are loaded.</p>
      */
     private Map<String, String> getAdditionalProperties() {
-        String regionProp = "aws.region";
-        String secretsKeyProp = "aws.secrets-key";
-        Map<String, String> additionalProps = new HashMap<>();
-        if (PropertiesManager.hasProperty(regionProp) && PropertiesManager.hasProperty(secretsKeyProp)) {
-            LOGGER.info("Loading secrets from AWS");
-            String region = PropertiesManager.getCustomProperty(regionProp);
-            String secretsKey = PropertiesManager.getCustomProperty(secretsKeyProp);
-            additionalProps.putAll(additionalProperties(region, secretsKey));
-        } else {
-            LOGGER.warn("AWS properties not configured. Using systems.properties.");
-        }
-        return additionalProps;
+        AdditionalPropertiesLoader loader = new AdditionalPropertiesLoader();
+        return loader.fetchAdditionalProperties(AdditionalPropertiesLoader.SecretsManagerType.AWS);
     }
 
     private List<MavenTaskDto<ClosedStep>> withAdditionalProperties(List<MavenTaskDto<ClosedStep>> tasks) {
