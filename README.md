@@ -378,7 +378,7 @@ Optionally, you can archive test results to Snowflake for further analysis.  To 
 Add the following properties to your systems.properties file or inject them using your secret management approach.
 
 It is assumed you have a Snowflake account, user, and have created a database and schema to hold the archived results.
-The script wil create the necesary tables if they do not already exist.   Accordingly, the user must have DDL and DML privileges on the target schema.
+The script will create the necessary tables if they do not already exist.   Accordingly, the user must have DDL and DML privileges on the target schema.
 ```
 snowflake.archive.account=
 snowflake.archive.warehouse=
