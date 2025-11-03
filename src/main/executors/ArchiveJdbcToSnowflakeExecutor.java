@@ -193,7 +193,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
 
     /** Create all tables, view, stage, and file format if not already present. */
     private static void createIfNotExistsObjects(Connection conn) throws SQLException {
-        System.out.println("Ensuring all required Snowflake objects exist...");
+        LOGGER.info("Ensuring all required Snowflake objects exist...");
 
         exec(conn, """
             CREATE STAGE IF NOT EXISTS GATLING_LOGS_STAGE
