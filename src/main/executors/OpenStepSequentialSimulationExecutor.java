@@ -39,7 +39,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
 
         // Three example tasks for the Container Version. Uncomment tasks.add as needed.
         MavenTaskDto<OpenStep> task1 = new MavenTaskDto<>("Internet Sales XMLA Simulation");
-        tasks.add(task1);
+        //tasks.add(task1);
         task1.setMavenCommand("gatling:test");
         task1.setRunLogFileName("internet_sales_xmla.log");
         task1.setLoggingAsAppend(true);
