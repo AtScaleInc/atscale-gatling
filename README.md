@@ -373,6 +373,50 @@ public Map<String, String> additionalProperties(String... params) {
   return secrets;
 }
 ```
+## Archiving Results to Snowflake
+Optionally, you can archive test results to Snowflake for further analysis.  To enable archiving of results to Snowflake, do the following:
+Add the following properties to your systems.properties file or inject them using your secret management approach.
+
+It is assumed you have a Snowflake account, user, and have created a database and schema to hold the archived results.
+The script will create the necessary tables if they do not already exist.   Accordingly, the user must have DDL and DML privileges on the target schema.
+```
+snowflake.archive.account=
+snowflake.archive.warehouse=
+snowflake.archive.database=
+snowflake.archive.schema=
+snowflake.archive.role=
+snowflake.archive.username=
+snowflake.archive.password=
+```
+set the appropriate values for your Snowflake environment to the right of the equals sign.
+
+Open the pom.xml file and locate the exec-maven-plugin section.  There you will find a maven goal defined for archiving results to Snowflake.
+It is defined as:
+```
+ <execution>
+    <id>archive-jdbc-to-snowflake</id>
+    <goals>
+        <goal>java</goal>
+    </goals>
+    <configuration>
+        <mainClass>executors.ArchiveJdbcToSnowflakeExecutor</mainClass>
+        <classpathScope>runtime</classpathScope>
+        <arguments>
+            <argument>--data_file=run_logs/internet_sales_jdbc.log</argument>
+        </arguments>
+    </configuration>
+</execution>
+``` 
+
+Modify the argument --data_file to point to the log file you want to archive to Snowflake.
+
+#### Run the archiving maven goal
+```shell
+ ./mvnw clean compile exec:java@archive-jdbc-to-snowflake
+```
+
+Create additional executions in the exec-maven-plugin section to archive additional log files as needed.
+
 
 ## Conclusion
 
