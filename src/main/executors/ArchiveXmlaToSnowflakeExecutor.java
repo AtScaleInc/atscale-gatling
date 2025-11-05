@@ -105,8 +105,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                         final int batchSize = 1000;
                         int count = 0;
                         for (String runId : runIds) {
-                            String pattern = "%gatlingRunId='" + runId + "'%";
-                            ps.setString(1, pattern);
+                            ps.setString(1, runId);
                             ps.addBatch();
                             if (++count % batchSize == 0) {
                                 ps.executeBatch();
@@ -309,7 +308,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     LEVEL,
                     LOGGER,
                     MESSAGE_KIND,
-                    GATLING_RUN_ID,
+                    TRIM(GATLING_RUN_ID) as GATLING_RUN_ID,
                     STATUS,
                     GATLING_SESSION_ID,
                     MODEL,
