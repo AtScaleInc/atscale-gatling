@@ -345,7 +345,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                   SOAP_HEADER,
                   SOAP_BODY
                 )
-                select \s
+                select
                 RUN_KEY,
                 GATLING_RUN_ID,
                 STATUS,
@@ -356,7 +356,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                 QUERY_NAME,
                 QUERY_HASH,
                 XMLGET(PARSE_XML(RAW_SOAP),'soap:Header') AS SOAP_HEADER,
-                XMLGET(PARSE_XML(RAW_SOAP),'soap:Body') AS SOAP_BODY
+                REGEXP_REPLACE(XMLGET(PARSE_XML(RAW_SOAP),'soap:Body')::VARCHAR, '<LastDataUpdate>.*</LastDataUpdate>', '<LastDataUpdate>0</LastDataUpdate>')::VARIANT AS SOAP_BODY
                 from GATLING_ARCHIVE.RUN_LOGS.XMLA_HEADERS
                  WHERE GATLING_RUN_ID = ?;
             """;
