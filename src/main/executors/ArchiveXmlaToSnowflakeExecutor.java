@@ -373,8 +373,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                               where gatling_run_id = ?
                               limit 1
                          )
-                    )
-                
+                    ) 
                 SELECT
                     RUN_KEY,
                     GATLING_RUN_ID,
