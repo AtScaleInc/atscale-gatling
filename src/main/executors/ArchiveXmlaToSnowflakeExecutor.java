@@ -13,7 +13,7 @@ import java.util.*;
 public class ArchiveXmlaToSnowflakeExecutor {
     private static final Logger LOGGER = LoggerFactory.getLogger(ArchiveXmlaToSnowflakeExecutor.class);
     private static final String STAGE = "XMLA_LOGS_STAGE";
-    private static final String RAW_TABLE = "XMLA_RAW_SOAP";
+    private static final String RAW_TABLE = "GATLING_RAW_XMLA_LOGS";
 
     public static void main(String[] args) {
         LOGGER.info("ArchiveXmlaToSnowflakeExecutor started.");
@@ -173,16 +173,16 @@ public class ArchiveXmlaToSnowflakeExecutor {
             """);
 
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS XMLA_RAW_SOAP (
+            CREATE TABLE IF NOT EXISTS GATLING_RAW_XMLA_LOGS (
               RAW_SOAP VARCHAR(16777216),
               SRC_FILENAME VARCHAR(16777216),
               SRC_ROW_NUMBER NUMBER(38,0)
             );
             """);
 
-        // Replaced XMLA_QUERIES with XMLA_HEADERS (breakout a=b pairs into columns)
+        // Replaced XMLA_QUERIES with GATLING_XMLA_HEADERS (breakout a=b pairs into columns)
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS XMLA_HEADERS (
+            CREATE TABLE IF NOT EXISTS GATLING_XMLA_HEADERS (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
               LEVEL VARCHAR(16777216),
@@ -206,7 +206,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
             """);
 
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS XMLA_RESPONSES (
+            CREATE TABLE IF NOT EXISTS GATLING_XMLA_RESPONSES (
               RUN_KEY NUMBER(19,0),
               GATLING_RUN_ID VARCHAR(512),
               STATUS VARCHAR(12),
@@ -218,6 +218,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
               QUERY_HASH VARCHAR(256),
               SOAP_HEADER VARIANT,
               SOAP_BODY VARIANT,
+              SOAP_BODY_HASH VARCHAR(256),
               PRIMARY KEY (RUN_KEY)
             );
             """);
@@ -227,7 +228,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
 
     private static String getCopyIntoRawSql(String fileName) {
         return String.format("""
-              COPY INTO XMLA_RAW_SOAP (RAW_SOAP, SRC_FILENAME, SRC_ROW_NUMBER)
+              COPY INTO GATLING_RAW_XMLA_LOGS (RAW_SOAP, SRC_FILENAME, SRC_ROW_NUMBER)
               FROM (
                 SELECT
                   $1 AS RAW_SOAP,
@@ -245,7 +246,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
     /** Server-side SQL to extract key\=value pairs from RAW_SOAP and insert one row per gatlingRunId. */
     private static String getInsertIntoHeadersSql() {
     return """
-            INSERT INTO GATLING_ARCHIVE.RUN_LOGS.XMLA_HEADERS (
+            INSERT INTO GATLING_ARCHIVE.RUN_LOGS.GATLING_XMLA_HEADERS (
                     -- List all destination columns explicitly
                     RUN_KEY,
                     TS,
@@ -296,7 +297,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                          -- Extract the full XML content starting from '<soap:Envelope'
                         regexp_substr(raw_soap, '<soap:Envelope.*</soap:Envelope>', 1, 1, 's') AS RAW_SOAP
                     FROM
-                        GATLING_ARCHIVE.RUN_LOGS.XMLA_RAW_SOAP AS UPLOAD
+                        GATLING_ARCHIVE.RUN_LOGS.GATLING_RAW_XMLA_LOGS AS UPLOAD
                     WHERE
                         UPLOAD.RAW_SOAP LIKE ?
                 )
@@ -331,34 +332,50 @@ public class ArchiveXmlaToSnowflakeExecutor {
     /** Insert a single response per query: pick first response row per query using ROW_NUMBER() */
     private static String getInsertIntoResponsesSql() {
         return """
-                -- QUERY TO INSERT INTO XMLA_RESPONSES
-                INSERT INTO GATLING_ARCHIVE.RUN_LOGS.XMLA_RESPONSES (
-                  RUN_KEY,
-                  GATLING_RUN_ID,
-                  STATUS,
-                  GATLING_SESSION_ID,
-                  MODEL,
-                  CUBE,
-                  CATALOG,
-                  QUERY_NAME,
-                  QUERY_HASH,
-                  SOAP_HEADER,
-                  SOAP_BODY
-                )
-                select
-                RUN_KEY,
-                GATLING_RUN_ID,
-                STATUS,
-                GATLING_SESSION_ID,
-                MODEL,
-                CUBE,
-                CATALOG,
-                QUERY_NAME,
-                QUERY_HASH,
-                XMLGET(PARSE_XML(RAW_SOAP),'soap:Header') AS SOAP_HEADER,
-                REGEXP_REPLACE(XMLGET(PARSE_XML(RAW_SOAP),'soap:Body')::VARCHAR, '<LastDataUpdate>.*</LastDataUpdate>', '<LastDataUpdate>0</LastDataUpdate>')::VARIANT AS SOAP_BODY
-                from GATLING_ARCHIVE.RUN_LOGS.XMLA_HEADERS
-                 WHERE GATLING_RUN_ID = ?;
+               -- QUERY TO INSERT INTO XMLA_RESPONSES
+                                              INSERT INTO GATLING_ARCHIVE.RUN_LOGS.GATLING_XMLA_RESPONSES (
+                                                RUN_KEY,
+                                                GATLING_RUN_ID,
+                                                STATUS,
+                                                GATLING_SESSION_ID,
+                                                MODEL,
+                                                CUBE,
+                                                CATALOG,
+                                                QUERY_NAME,
+                                                QUERY_HASH,
+                                                SOAP_HEADER,
+                                                SOAP_BODY,
+                                                SOAP_BODY_HASH -- New column
+                                              )
+                                              WITH ModifiedSoap AS (
+                                                  SELECT
+                                                      *,
+                                                      -- Calculate the modified SOAP body as a string once
+                                                      REGEXP_REPLACE(
+                                                        XMLGET(PARSE_XML(RAW_SOAP), 'soap:Body')::VARCHAR,
+                                                        '<LastDataUpdate.*?>[^<]*</LastDataUpdate>',
+                                                        '<LastDataUpdate>0</LastDataUpdate>'
+                                                      ) AS MODIFIED_SOAP_BODY_STR
+                                                  FROM
+                                                      GATLING_ARCHIVE.RUN_LOGS.GATLING_XMLA_HEADERS
+                                                  WHERE
+                                                      GATLING_RUN_ID = ?
+                                              )
+                                              SELECT
+                                                  RUN_KEY,
+                                                  GATLING_RUN_ID,
+                                                  STATUS,
+                                                  GATLING_SESSION_ID,
+                                                  MODEL,
+                                                  CUBE,
+                                                  CATALOG,
+                                                  QUERY_NAME,
+                                                  QUERY_HASH,
+                                                  XMLGET(PARSE_XML(RAW_SOAP),'soap:Header') AS SOAP_HEADER,
+                                                  MODIFIED_SOAP_BODY_STR::VARIANT AS SOAP_BODY, -- Use the pre-calculated string, cast to VARIANT
+                                                  HASH(MODIFIED_SOAP_BODY_STR) AS SOAP_BODY_HASH -- Hash the pre-calculated string
+                                              FROM
+                                                  ModifiedSoap;
             """;
     }
 
