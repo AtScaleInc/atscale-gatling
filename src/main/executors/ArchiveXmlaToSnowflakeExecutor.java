@@ -67,8 +67,31 @@ public class ArchiveXmlaToSnowflakeExecutor {
                 exec(conn, "PUT '" + fileUri + "' @" + STAGE + " AUTO_COMPRESS=TRUE OVERWRITE=TRUE");
                 LOGGER.info("Uploaded file {} to stage {} as {}", fileUri, STAGE, stagedFileName);
 
-                // 2) Begin DML transaction: COPY + INSERTs should be atomic together
+                // Begin DML transaction: COPY + INSERTs should be atomic together
                 conn.setAutoCommit(false);
+
+
+                // 2) Clean up any prior data for the same run IDs (idempotency step)
+                if (!runIds.isEmpty()) {
+                    try (PreparedStatement ps = conn.prepareStatement(getCleanRawLogsForRunIdSql())) {
+                        final int batchSize = 1000;
+                        int count = 0;
+                        for (String runId : runIds) {
+                            String pattern = "%gatlingRunId='" + runId + "'%";
+                            ps.setString(1, pattern);
+                            ps.addBatch();
+                            if (++count % batchSize == 0) {
+                                ps.executeBatch();
+                                LOGGER.debug("Deleted raw log batch of {} runIds", batchSize);
+                            }
+                        }
+                        if (count % batchSize != 0) {
+                            ps.executeBatch();
+                            LOGGER.debug("Deleted final raw log batch of {} runIds", count % batchSize);
+                        }
+                    }
+                }
+
 
                 // 3) COPY into RAW table (fail the whole transaction on any load error)
                 // This part cannot be made idempotent
@@ -244,6 +267,13 @@ public class ArchiveXmlaToSnowflakeExecutor {
               PURGE=TRUE
               ON_ERROR = 'ABORT_STATEMENT';
             """, fileName);
+    }
+
+    private static String getCleanRawLogsForRunIdSql() {
+        return """
+            DELETE FROM GATLING_ARCHIVE.RUN_LOGS.GATLING_RAW_XMLA_LOGS
+            WHERE RAW_SOAP LIKE ?
+            """;
     }
 
     /** Server-side SQL to extract key\=value pairs from RAW_SOAP and insert one row per gatlingRunId. */

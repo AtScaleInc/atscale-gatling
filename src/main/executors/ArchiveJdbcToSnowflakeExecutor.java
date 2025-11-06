@@ -72,8 +72,30 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 exec(conn, "PUT '" + fileUri + "' @" + STAGE + " AUTO_COMPRESS=TRUE OVERWRITE=TRUE");
                 LOGGER.info("Uploaded file {} to stage {} as {}", fileUri, STAGE, stagedFileName);
 
-                // 2) Begin DML transaction: COPY + INSERTs should be atomic together
+                // Begin DML transaction: COPY + INSERTs should be atomic together
                 conn.setAutoCommit(false);
+
+                // 2) Clean up any prior data for the same run IDs (idempotency step)
+                if (!runIds.isEmpty()) {
+                    try (PreparedStatement ps = conn.prepareStatement(getCleanRawLogsForRunIdSql())) {
+                        final int batchSize = 1000;
+                        int count = 0;
+                        for (String runId : runIds) {
+                            String pattern = "%gatlingRunId='" + runId + "'%";
+                            ps.setString(1, pattern);
+                            ps.addBatch();
+                            if (++count % batchSize == 0) {
+                                ps.executeBatch();
+                                LOGGER.debug("Deleted raw log batch of {} runIds", batchSize);
+                            }
+                        }
+                        if (count % batchSize != 0) {
+                            ps.executeBatch();
+                            LOGGER.debug("Deleted final raw log batch of {} runIds", count % batchSize);
+                        }
+                    }
+                }
+
 
                 // 3) COPY into RAW table (fail the whole transaction on any load error)
                 // Use PURGE=TRUE to remove staged file after successful load
@@ -382,6 +404,13 @@ public class ArchiveJdbcToSnowflakeExecutor {
         return props;
     }
 
+    private static String getCleanRawLogsForRunIdSql() {
+        return """
+            DELETE FROM GATLING_ARCHIVE.RUN_LOGS.GATLING_RAW_SQL_LOGS
+            WHERE RAW_LINE LIKE ?
+            """;
+    }
+
     private static String getInsertIntoRawSqlLogsSql(String fileName) {
         return String.format("""
               COPY INTO GATLING_RAW_SQL_LOGS (RAW_LINE, SRC_FILENAME, SRC_ROW_NUMBER)
@@ -398,6 +427,8 @@ public class ArchiveJdbcToSnowflakeExecutor {
               ON_ERROR = 'ABORT_STATEMENT';
             """, fileName);
     }
+
+
 
     /** INSERT from RAW -> SQL_LOGS (parsing by tab-delimited fields). Adjust positions if needed. */
     private static String getInsertIntoSqlLogsSql(String fileName) {
