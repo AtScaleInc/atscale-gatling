@@ -42,7 +42,8 @@ public class ArchiveJdbcToSnowflakeExecutor {
         Properties connectionProps = getConnectionProperties();
 
         List<String> runIds = RunLogUtils.extractGatlingRunIds(dataFile);
-        LOGGER.info("Found {} unique Gatling Run IDs in log file {}.", runIds.size(), dataFile);
+        LOGGER.info("Found {} unique JDBC RUN IDs in log file {}:: {}.", runIds.size(), dataFile, runIds);
+
 
         LOGGER.info("Connecting to Snowflake with URL: {}", jdbcUrl);
         try (Connection conn = DriverManager.getConnection(jdbcUrl, connectionProps)) {

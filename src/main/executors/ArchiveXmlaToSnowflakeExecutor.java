@@ -42,7 +42,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
         Properties connectionProps = getConnectionProperties();
 
         List<String> runIds = RunLogUtils.extractGatlingRunIds(dataFile);
-        LOGGER.info("Found {} unique XMLA Query IDs in log file {}.", runIds.size(), dataFile);
+        LOGGER.info("Found {} unique XMLA RUN IDs in log file {}:: {}.", runIds.size(), dataFile, runIds);
 
         LOGGER.info("Connecting to Snowflake with URL: {}", jdbcUrl);
         try (Connection conn = DriverManager.getConnection(jdbcUrl, connectionProps)) {
