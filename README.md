@@ -287,6 +287,12 @@ ConstantConcurrentUsersClosedInjectionStep: Maintains a constant number of users
 IncrementConcurrentUsersClosedInjectionStep: Gradually increases the number of users in increments over a specified duration.
 RampConcurrentUsersClosedInjectionStep: Starts with a specified number of users and ramps up to a target number over a given duration.
 ```
+
+## Troubleshooting
+The application provides extensive logging.  First place to look is in the app_logs/application.log file
+Additional logging can be enabled by changing level="info" to level="debug" in the src/main/resources/log4j2.xml file
+
+
 ## Managing Secrets
 If you are concerned about managing secrets such as usernames, passwords, and access tokens in the systems.properties file, the tooling supports injecting
 these values at runtime.  Our default implementation uses AwsSecretsManager.  However, the code can be can modified to do anything you require such as reading
@@ -374,11 +380,17 @@ public Map<String, String> additionalProperties(String... params) {
 }
 ```
 ## Archiving Results to Snowflake
-Optionally, you can archive test results to Snowflake for further analysis.  To enable archiving of results to Snowflake, do the following:
-Add the following properties to your systems.properties file or inject them using your secret management approach.
+
+![img_9.png](img_9.png)
+
+Optionally, archive test results to Snowflake for further analysis.  To enable archiving of results to Snowflake, do the following:
+
+Add the necessary properties to your systems.properties file or inject them using your secret management approach.
 
 It is assumed you have a Snowflake account, user, and have created a database and schema to hold the archived results.
-The script will create the necessary tables if they do not already exist.   Accordingly, the user must have DDL and DML privileges on the target schema.
+The script will create the necessary tables if they do not already exist.   Accordingly, the user must have DDL and DML 
+privileges on the target schema.
+
 ```
 snowflake.archive.account=
 snowflake.archive.warehouse=
@@ -390,8 +402,13 @@ snowflake.archive.password=
 ```
 set the appropriate values for your Snowflake environment to the right of the equals sign.
 
-Open the pom.xml file and locate the exec-maven-plugin section.  There you will find a maven goal defined for archiving results to Snowflake.
-It is defined as:
+Extract the DDL commands from the ArchiveJdbcToSnowflakeExecutor and ArchiveXmlaToSnowflakeExecutor and run those DDL
+scripts separately if your data governance policies require you to do so.  That will allow use of a role that has DML 
+privileges only.
+
+Open the pom.xml file and locate the exec-maven-plugin section.  There you will find maven goals defined for archiving 
+results to Snowflake.
+
 ```
  <execution>
     <id>archive-jdbc-to-snowflake</id>
@@ -406,17 +423,44 @@ It is defined as:
         </arguments>
     </configuration>
 </execution>
+ <execution>
+    <id>archive-xmla-to-snowflake</id>
+    <goals>
+        <goal>java</goal>
+    </goals>
+    <configuration>
+        <mainClass>executors.ArchiveXmlaToSnowflakeExecutor</mainClass>
+        <classpathScope>runtime</classpathScope>
+        <arguments>
+            <argument>--data_file=run_logs/internet_sales_xmla.log</argument>
+        </arguments>
+    </configuration>
+</execution>
 ``` 
 
-Modify the argument --data_file to point to the log file you want to archive to Snowflake.
+IMPORTANT!!!  Modify the argument --data_file to point to the log file you want to archive to Snowflake.
 
 #### Run the archiving maven goal
 ```shell
  ./mvnw clean compile exec:java@archive-jdbc-to-snowflake
 ```
 
+```shell
+ ./mvnw clean compile exec:java@archive-xmla-to-snowflake
+```
+
 Create additional executions in the exec-maven-plugin section to archive additional log files as needed.
 
+The Snowflake tables and views needed for archiving are created by the ArchiveToSnowflakeExecutors.  Use a role with DDL
+permissions or modify to suit your environment and data governance policies.
+
+### Analyzing runs
+In the scripts/Snowflake directory there are two Python Notebooks that can be uploaded to your Snowflake instance.
+These notebooks perform comparative analysis of the data between two different runs -- identified by unique runIds
+which are set in the first cell.   RunIds can be found in the the logs within the run_logs directory or as output
+logged during the upload to Snowflake process found in the app_logs/application.log.  Look for a logging line
+similar to: Found 2 unique XMLA RUN IDs in log file run_logs/internet_sales_xmla.log:: [2025-11-06-K5eXH6xcKy, 2025-11-06-tcVRt01cgL]
+Paste the run id or run ids into the notebook to perform a comparative analysis.
 
 ## Conclusion
 
