@@ -42,7 +42,8 @@ public class ArchiveJdbcToSnowflakeExecutor {
         Properties connectionProps = getConnectionProperties();
 
         List<String> runIds = RunLogUtils.extractGatlingRunIds(dataFile);
-        LOGGER.info("Found {} unique Gatling Run IDs in log file {}.", runIds.size(), dataFile);
+        LOGGER.info("Found {} unique JDBC RUN IDs in log file {}:: {}.", runIds.size(), dataFile, runIds);
+
 
         LOGGER.info("Connecting to Snowflake with URL: {}", jdbcUrl);
         try (Connection conn = DriverManager.getConnection(jdbcUrl, connectionProps)) {
@@ -71,14 +72,38 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 exec(conn, "PUT '" + fileUri + "' @" + STAGE + " AUTO_COMPRESS=TRUE OVERWRITE=TRUE");
                 LOGGER.info("Uploaded file {} to stage {} as {}", fileUri, STAGE, stagedFileName);
 
-                // 2) Begin DML transaction: COPY + INSERTs should be atomic together
+                // Begin DML transaction: COPY + INSERTs should be atomic together
                 conn.setAutoCommit(false);
 
+                // 2) Clean up any prior data for the same run IDs (idempotency step)
+                if (!runIds.isEmpty()) {
+                    try (PreparedStatement ps = conn.prepareStatement(getCleanRawLogsForRunIdSql())) {
+                        final int batchSize = 1000;
+                        int count = 0;
+                        for (String runId : runIds) {
+                            String pattern = "%gatlingRunId='" + runId + "'%";
+                            ps.setString(1, pattern);
+                            ps.addBatch();
+                            if (++count % batchSize == 0) {
+                                ps.executeBatch();
+                                LOGGER.debug("Deleted raw log batch of {} runIds", batchSize);
+                            }
+                        }
+                        if (count % batchSize != 0) {
+                            ps.executeBatch();
+                            LOGGER.debug("Deleted final raw log batch of {} runIds", count % batchSize);
+                        }
+                    }
+                }
+
+
                 // 3) COPY into RAW table (fail the whole transaction on any load error)
+                // Use PURGE=TRUE to remove staged file after successful load
+                // this step cannot be made idempotent
                 exec(conn, getInsertIntoRawSqlLogsSql(stagedFileName));
                 LOGGER.info("Copied data from stage {} into table {}", STAGE, RAW_TABLE);
 
-                // 4) Insert parsed rows into GATLING_SQL_LOGS
+                // 4) Insert parsed rows into GATLING_SQL_LOGS this step is idempotent
                 try(PreparedStatement ps = conn.prepareStatement(getInsertIntoSqlLogsSql(stagedFileName))) {
                     final int batchSize = 1000;
                     int rowsInserted = 0;
@@ -86,6 +111,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
                     for (String runId : runIds) {
                         String pattern = "%gatlingRunId='" + runId + "'%";
                         ps.setString(1, pattern);
+                        ps.setString(2, runId);
                         ps.addBatch();
                         if (++count % batchSize == 0) {
                             int[] results = ps.executeBatch();
@@ -110,13 +136,14 @@ public class ArchiveJdbcToSnowflakeExecutor {
                     LOGGER.info("Inserted {} parsed rows into GATLING_SQL_LOGS from {}", rowsInserted, "GATLING_RAW_SQL_LOGS");
                 }
 
-                // 5) PreparedStatement batches for headers
+                // 5) PreparedStatement batches for headers this step is idempotent
                 if (!runIds.isEmpty()) {
                     try (PreparedStatement ps = conn.prepareStatement(getInsertIntoHeadersSql())) {
                         final int batchSize = 1000;
                         int count = 0;
                         for (String runId : runIds) {
                             ps.setString(1, runId);
+                            ps.setString(2, runId);
                             ps.addBatch();
                             if (++count % batchSize == 0) {
                                 ps.executeBatch();
@@ -130,12 +157,13 @@ public class ArchiveJdbcToSnowflakeExecutor {
                     }
                     LOGGER.info("Inserted header rows into GATLING_SQL_HEADERS from gatling_sql_logs");
 
-                    // 6) PreparedStatement batches for details
+                    // 6) PreparedStatement batches for details this step is idempotent
                     try (PreparedStatement ps = conn.prepareStatement(getInsertIntoDetailsSql())) {
                         final int batchSize = 1000;
                         int count = 0;
                         for (String runId : runIds) {
                             ps.setString(1, runId);
+                            ps.setString(2, runId);
                             ps.addBatch();
                             if (++count % batchSize == 0) {
                                 ps.executeBatch();
@@ -245,7 +273,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
             """);
 
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS GATLING_SQL_DETAILS CLUSTER BY (RUN_KEY, ROWNUMBER) (
+            CREATE TABLE IF NOT EXISTS GATLING_SQL_DETAILS CLUSTER BY (GATLING_RUN_ID) (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
               LEVEL VARCHAR(16777216),
@@ -271,7 +299,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
             """);
 
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS GATLING_SQL_HEADERS CLUSTER BY (RUN_KEY, TS) (
+            CREATE TABLE IF NOT EXISTS GATLING_SQL_HEADERS CLUSTER BY (GATLING_RUN_ID) (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
               LEVEL VARCHAR(16777216),
@@ -376,6 +404,13 @@ public class ArchiveJdbcToSnowflakeExecutor {
         return props;
     }
 
+    private static String getCleanRawLogsForRunIdSql() {
+        return """
+            DELETE FROM GATLING_RAW_SQL_LOGS
+            WHERE RAW_LINE LIKE ?
+            """;
+    }
+
     private static String getInsertIntoRawSqlLogsSql(String fileName) {
         return String.format("""
               COPY INTO GATLING_RAW_SQL_LOGS (RAW_LINE, SRC_FILENAME, SRC_ROW_NUMBER)
@@ -392,6 +427,8 @@ public class ArchiveJdbcToSnowflakeExecutor {
               ON_ERROR = 'ABORT_STATEMENT';
             """, fileName);
     }
+
+
 
     /** INSERT from RAW -> SQL_LOGS (parsing by tab-delimited fields). Adjust positions if needed. */
     private static String getInsertIntoSqlLogsSql(String fileName) {
@@ -439,7 +476,12 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 src_row_number,
                 raw_line            FROM GATLING_RAW_SQL_LOGS
                 WHERE src_filename = '%s'
-                AND raw_line LIKE ?;
+                AND raw_line LIKE ?
+                AND NOT EXISTS (
+                    select gatling_run_id from gatling_sql_headers
+                    where gatling_run_id = ?
+                    limit 1
+                );
             """, fileName);
     }
 
@@ -472,7 +514,12 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 raw_line
             FROM gatling_sql_logs
             WHERE rownumber IS NULL
-            AND GATLING_RUN_ID = ?;
+            AND GATLING_RUN_ID = ?
+            AND NOT EXISTS (
+                SELECT 1 FROM GATLING_SQL_HEADERS
+                WHERE gatling_run_id = ?
+                LIMIT 1
+            );
             """;
     }
 
@@ -513,7 +560,12 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 raw_line
             FROM gatling_sql_logs
             WHERE rownumber IS NOT NULL
-            AND GATLING_RUN_ID = ?;
+            AND GATLING_RUN_ID = ?
+            AND NOT EXISTS (
+                SELECT 1 FROM GATLING_SQL_DETAILS
+                WHERE gatling_run_id = ?
+                LIMIT 1
+            );
             """;
     }
 
