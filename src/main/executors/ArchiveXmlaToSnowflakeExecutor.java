@@ -120,7 +120,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                             LOGGER.debug("Inserted final header batch of {} runIds", count % batchSize);
                         }
                     }
-                    LOGGER.info("Inserted header rows into GATLING_SQL_HEADERS from gatling_sql_logs");
+                    LOGGER.info("Inserted header rows into GATLING_XMLA_HEADERS from gatling_raw_xmla_logs");
                 }
 
 
@@ -135,15 +135,15 @@ public class ArchiveXmlaToSnowflakeExecutor {
                             ps.addBatch();
                             if (++count % batchSize == 0) {
                                 ps.executeBatch();
-                                LOGGER.debug("Inserted header batch of {} runIds", batchSize);
+                                LOGGER.debug("Inserted responses batch of {} runIds", batchSize);
                             }
                         }
                         if (count % batchSize != 0) {
                             ps.executeBatch();
-                            LOGGER.debug("Inserted final header batch of {} runIds", count % batchSize);
+                            LOGGER.debug("Inserted final responses batch of {} runIds", count % batchSize);
                         }
                     }
-                    LOGGER.info("Inserted header rows into GATLING_SQL_HEADERS from gatling_sql_logs");
+                    LOGGER.info("Inserted response rows into gatling_xmla_responses");
                 }
 
                 // cleanup staged file
