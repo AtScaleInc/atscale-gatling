@@ -406,7 +406,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
 
     private static String getCleanRawLogsForRunIdSql() {
         return """
-            DELETE FROM GATLING_ARCHIVE.RUN_LOGS.GATLING_RAW_SQL_LOGS
+            DELETE FROM GATLING_RAW_SQL_LOGS
             WHERE RAW_LINE LIKE ?
             """;
     }
@@ -478,7 +478,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 WHERE src_filename = '%s'
                 AND raw_line LIKE ?
                 AND NOT EXISTS (
-                    select gatling_run_id from gatling_archive.run_logs.gatling_sql_headers
+                    select gatling_run_id from gatling_sql_headers
                     where gatling_run_id = ?
                     limit 1
                 );

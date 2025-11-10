@@ -271,7 +271,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
 
     private static String getCleanRawLogsForRunIdSql() {
         return """
-            DELETE FROM GATLING_ARCHIVE.RUN_LOGS.GATLING_RAW_XMLA_LOGS
+            DELETE FROM GATLING_RAW_XMLA_LOGS
             WHERE RAW_SOAP LIKE ?
             """;
     }
@@ -279,7 +279,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
     /** Server-side SQL to extract key\=value pairs from RAW_SOAP and insert one row per gatlingRunId. */
     private static String getInsertIntoHeadersSql() {
     return """
-            INSERT INTO GATLING_ARCHIVE.RUN_LOGS.GATLING_XMLA_HEADERS (
+            INSERT INTO GATLING_XMLA_HEADERS (
                     -- List all destination columns explicitly
                     RUN_KEY,
                     TS,
@@ -330,11 +330,11 @@ public class ArchiveXmlaToSnowflakeExecutor {
                          -- Extract the full XML content starting from '<soap:Envelope'
                         regexp_substr(raw_soap, '<soap:Envelope.*</soap:Envelope>', 1, 1, 's') AS RAW_SOAP
                     FROM
-                        GATLING_ARCHIVE.RUN_LOGS.GATLING_RAW_XMLA_LOGS AS UPLOAD
+                        GATLING_RAW_XMLA_LOGS AS UPLOAD
                     WHERE
                         UPLOAD.RAW_SOAP LIKE ?
                         AND NOT EXISTS (
-                            select gatling_run_id from gatling_archive.run_logs.gatling_xmla_headers
+                            select gatling_run_id from gatling_xmla_headers
                             where gatling_run_id = ?
                             limit 1
                         )
@@ -371,7 +371,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
     private static String getInsertIntoResponsesSql() {
         return """
                -- QUERY TO INSERT INTO XMLA_RESPONSES
-               INSERT INTO GATLING_ARCHIVE.RUN_LOGS.GATLING_XMLA_RESPONSES (
+               INSERT INTO GATLING_XMLA_RESPONSES (
                     RUN_KEY,
                     GATLING_RUN_ID,
                     STATUS,
@@ -395,15 +395,15 @@ public class ArchiveXmlaToSnowflakeExecutor {
                           '<LastDataUpdate>0</LastDataUpdate>'
                         ) AS MODIFIED_SOAP_BODY_STR
                     FROM
-                        GATLING_ARCHIVE.RUN_LOGS.GATLING_XMLA_HEADERS
+                        GATLING_XMLA_HEADERS
                     WHERE
                         GATLING_RUN_ID = ?
                         AND NOT EXISTS (
-                              select gatling_run_id from gatling_archive.run_logs.gatling_xmla_responses
+                              select gatling_run_id from gatling_xmla_responses
                               where gatling_run_id = ?
                               limit 1
                          )
-                    ) 
+                    )
                 SELECT
                     RUN_KEY,
                     GATLING_RUN_ID,
