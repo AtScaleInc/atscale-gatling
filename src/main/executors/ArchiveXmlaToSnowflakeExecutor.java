@@ -208,7 +208,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
 
         // Replaced XMLA_QUERIES with GATLING_XMLA_HEADERS (breakout a=b pairs into columns)
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS GATLING_XMLA_HEADERS (
+            CREATE TABLE IF NOT EXISTS GATLING_XMLA_HEADERS CLUSTER BY (GATLING_RUN_ID) (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
               LEVEL VARCHAR(16777216),
@@ -232,7 +232,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
             """);
 
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS GATLING_XMLA_RESPONSES (
+            CREATE TABLE IF NOT EXISTS GATLING_XMLA_RESPONSES CLUSTER BY (GATLING_RUN_ID)(
               RUN_KEY NUMBER(19,0),
               GATLING_RUN_ID VARCHAR(512),
               STATUS VARCHAR(12),

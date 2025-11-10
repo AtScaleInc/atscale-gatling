@@ -273,7 +273,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
             """);
 
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS GATLING_SQL_DETAILS CLUSTER BY (RUN_KEY, ROWNUMBER) (
+            CREATE TABLE IF NOT EXISTS GATLING_SQL_DETAILS CLUSTER BY (GATLING_RUN_ID) (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
               LEVEL VARCHAR(16777216),
@@ -299,7 +299,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
             """);
 
         exec(conn, """
-            CREATE TABLE IF NOT EXISTS GATLING_SQL_HEADERS CLUSTER BY (RUN_KEY, TS) (
+            CREATE TABLE IF NOT EXISTS GATLING_SQL_HEADERS CLUSTER BY (GATLING_RUN_ID) (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
               LEVEL VARCHAR(16777216),
