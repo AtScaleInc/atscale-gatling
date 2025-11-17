@@ -71,7 +71,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         //tasks.add(task4);
         task4.setMavenCommand("gatling:test");
         task4.setRunLogFileName("tpcds_benchmark_hive.log");
-        task4.setLoggingAsAppend(false);
+        task4.setLoggingAsAppend(true);
         task4.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleOpenInjectionStepSimulation");
         task4.setRunDescription("TPCDS JDBC Model Tests");
         task4.setModel("TPC-DS Benchmark Model");
@@ -82,7 +82,7 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         //tasks.add(task5);
         task5.setMavenCommand("gatling:test");
         task5.setRunLogFileName("tpcds_benchmark_xmla.log");
-        task5.setLoggingAsAppend(false);
+        task5.setLoggingAsAppend(true);
         task5.setSimulationClass("com.atscale.java.xmla.simulations.AtScaleXmlaOpenInjectionStepSimulation");
         task5.setRunDescription("TPCDS XMLA Model Tests");
         task5.setModel("TPC-DS Benchmark Model");

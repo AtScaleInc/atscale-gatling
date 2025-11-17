@@ -60,22 +60,26 @@ public class OpenStepConcurrentSimulationExecutor extends ConcurrentSimulationEx
         MavenTaskDto<OpenStep> task3 = new MavenTaskDto<>("TPC-DS JDBC Simulation");
         tasks.add(task3);
         task3.setMavenCommand("gatling:test");
-        task3.setRunLogFileName("tpcds_benchmark_jdbc.log");
+        task3.setRunLogFileName("tpcds_jdbc.log");
+        task3.setLoggingAsAppend(true);
         task3.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleOpenInjectionStepSimulation");
         task3.setRunDescription("TPCDS JDBC Model Tests");
         task3.setModel("tpcds_benchmark_model");
-        task3.setInjectionSteps(t3InjectionSteps);
+        task3.setInjectionSteps(atOnceInjectionSteps);
         
         // Two example tasks for the Installer Version. Exclude by removing tasks.add as needed.
         MavenTaskDto<OpenStep> task4 = new MavenTaskDto<>("Installer TPC-DS JDBC Simulation");
         //tasks.add(task4);
         task4.setMavenCommand("gatling:test");
-        task4.setRunLogFileName("tpcds_benchmark_hive.log");
-        task4.setLoggingAsAppend(false);
+        task4.setRunLogFileName("tpcds_jdbc.log");
+        task4.setLoggingAsAppend(true);
         task4.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleOpenInjectionStepSimulation");
-        task4.setRunDescription("TPCDS JDBC Model Tests");
-        task4.setModel("TPC-DS Benchmark Model");
+        task4.setRunDescription("TPCDS JDBC Model Tests'");
+        task4.setModel("tpcds_benchmark_model");
         task4.setInjectionSteps(atOnceInjectionSteps);
+        task4.setAlternatePropertiesFileName("container_systems.properties");
+
+         // Another example task for the Installer Version. Exclude by removing tasks.add as needed.
 
         MavenTaskDto<OpenStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
         //tasks.add(task5);
