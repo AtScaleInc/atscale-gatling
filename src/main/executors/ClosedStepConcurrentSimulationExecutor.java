@@ -37,7 +37,7 @@ public class ClosedStepConcurrentSimulationExecutor extends ConcurrentSimulation
         constantUsersInjectionSteps.add(new ConstantConcurrentUsersClosedInjectionStep(1,1));
 
         MavenTaskDto<ClosedStep> task1 = new MavenTaskDto<> ("Internet Sales XMLA Stepped User Simulation");
-        tasks.add(task1);
+        //tasks.add(task1);
         task1.setMavenCommand("gatling:test");
         task1.setRunLogFileName("internet_sales_xmla.log");
         task1.setLoggingAsAppend(true);
@@ -70,12 +70,13 @@ public class ClosedStepConcurrentSimulationExecutor extends ConcurrentSimulation
         MavenTaskDto<ClosedStep> task4 = new MavenTaskDto<>("Installer TPC-DS JDBC Simulation");
         //tasks.add(task4);
         task4.setMavenCommand("gatling:test");
-        task4.setRunLogFileName("tpcds_benchmark_hive.log");
-        task4.setLoggingAsAppend(false);
+        task4.setRunLogFileName("tpcds_jdbc.log");
+        task4.setLoggingAsAppend(true);
         task4.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleClosedInjectionStepSimulation");
-        task4.setRunDescription("TPCDS JDBC Model Tests");
-        task4.setModel("TPC-DS Benchmark Model");
-        task4.setInjectionSteps(constantUsersInjectionSteps);
+        task4.setRunDescription("TPCDS JDBC Model Tests'");
+        task4.setModel("tpcds_benchmark_model");
+        task4.setInjectionSteps(t3InjectionSteps);
+        //task4.setAlternatePropertiesFileName("container_systems.properties");
 
         MavenTaskDto<ClosedStep> task5 = new MavenTaskDto<>("Installer TPC-DS XMLA Simulation");
         //tasks.add(task5);
