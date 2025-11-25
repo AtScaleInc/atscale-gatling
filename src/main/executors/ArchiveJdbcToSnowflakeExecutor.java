@@ -325,8 +325,8 @@ public class ArchiveJdbcToSnowflakeExecutor {
             """);
 
         exec(conn, """
-            CREATE OR REPLACE VIEW V_GATLING_JOINED AS
-            SELECT
+                CREATE OR REPLACE VIEW V_GATLING_JOINED AS
+                SELECT
                 h.run_key,
                 TRIM(SPLIT_PART(h.gatling_run_id, '|', 1)) AS test_name,
                 TRY_TO_NUMBER(REGEXP_SUBSTR(SPLIT_PART(h.gatling_run_id, '|', 2), '[0-9]+')) AS concurrent_users,
@@ -340,6 +340,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 h.gatling_session_id,
                 h.model,
                 h.query_name,
+                h.atscale_query_id,
                 h.query_hash,
                 h.start_ms AS header_start_ms,
                 h.end_ms AS header_end_ms,
