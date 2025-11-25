@@ -97,7 +97,6 @@ public class ArchiveXmlaToSnowflakeExecutor {
                 // This part cannot be made idempotent
                 exec(conn, getCopyIntoRawSql(stagedFileName));
                 LOGGER.info("Copied data from stage {} into table {}", STAGE, RAW_TABLE);
-                conn.commit();
 
 
                 // 4) Copy into the HEADERS table this step is idempotent
@@ -211,9 +210,9 @@ public class ArchiveXmlaToSnowflakeExecutor {
             CREATE TABLE IF NOT EXISTS GATLING_XMLA_HEADERS CLUSTER BY (GATLING_RUN_ID) (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
-              LEVEL VARCHAR(16777216),
-              LOGGER VARCHAR(16777216),
-              MESSAGE_KIND VARCHAR(16777216),
+              LEVEL VARCHAR(30),
+              LOGGER VARCHAR(100),
+              MESSAGE_KIND VARCHAR(100),
               GATLING_RUN_ID VARCHAR(512) NOT NULL,
               STATUS VARCHAR(12),
               GATLING_SESSION_ID NUMBER(8,0),
@@ -221,6 +220,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
               CUBE VARCHAR(1024),
               CATALOG VARCHAR(1024),
               QUERY_NAME VARCHAR(1024),
+              ATSCALE_QUERY_ID VARCHAR(256),
               QUERY_HASH VARCHAR(256),
               START_MS NUMBER(38,0),
               END_MS NUMBER(38,0),
@@ -241,6 +241,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
               CUBE VARCHAR(1024),
               CATALOG VARCHAR(1024),
               QUERY_NAME VARCHAR(1024),
+              ATSCALE_QUERY_ID VARCHAR(256),
               QUERY_HASH VARCHAR(256),
               SOAP_HEADER VARIANT,
               SOAP_BODY VARIANT,
@@ -293,6 +294,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     CUBE,
                     CATALOG,
                     QUERY_NAME,
+                    ATSCALE_QUERY_ID,
                     QUERY_HASH,
                     START_MS,
                     END_MS,
@@ -322,7 +324,9 @@ public class ArchiveXmlaToSnowflakeExecutor {
                         regexp_substr(raw_soap, 'cube=\\'([^\\']+)\\'', 1, 1, 'e', 1) AS CUBE,
                         regexp_substr(raw_soap, 'catalog=\\'([^\\']+)\\'', 1, 1, 'e', 1) AS CATALOG,
                         regexp_substr(raw_soap, 'queryName=\\'([^\\']+)\\'', 1, 1, 'e', 1) AS QUERY_NAME,
-                        regexp_substr(raw_soap, 'inboundTextAsMd5Hash=\\'([^\\']+)\\'', 1, 1, 'e', 1) AS QUERY_HASH,
+                        regexp_substr(raw_soap, 'atscaleQueryId=\\'([^\\']+)\\'', 1, 1, 'e', 1) AS ATSCALE_QUERY_ID,
+                         -- Extract inboundTextAsHash value
+                        regexp_substr(raw_soap, 'inboundTextAsHash=\\'([^\\']+)\\'', 1, 1, 'e', 1) AS QUERY_HASH,
                         regexp_substr(raw_soap, 'start=([^\\\\s]+)', 1, 1, 'e', 1) AS START_MS,
                         regexp_substr(raw_soap, 'end=([^\\\\s]+)', 1, 1, 'e', 1) AS END_MS,
                         regexp_substr(raw_soap, 'duration=([^\\\\s]+)', 1, 1, 'e', 1) AS DURATION_MS,
@@ -354,6 +358,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     CUBE,
                     CATALOG,
                     QUERY_NAME,
+                    ATSCALE_QUERY_ID,
                     QUERY_HASH,
                     START_MS,
                     END_MS,
@@ -380,6 +385,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     CUBE,
                     CATALOG,
                     QUERY_NAME,
+                    ATSCALE_QUERY_ID,
                     QUERY_HASH,
                     SOAP_HEADER,
                     SOAP_BODY,
@@ -413,6 +419,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     CUBE,
                     CATALOG,
                     QUERY_NAME,
+                    ATSCALE_QUERY_ID,
                     QUERY_HASH,
                     XMLGET(PARSE_XML(RAW_SOAP),'soap:Header') AS SOAP_HEADER,
                     MODIFIED_SOAP_BODY_STR::VARIANT AS SOAP_BODY, -- Use the pre-calculated string, cast to VARIANT
