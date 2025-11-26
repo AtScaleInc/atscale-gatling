@@ -21,9 +21,10 @@ We enable a two step process, which provides an opportunity to modify query extr
 
 ![img_2.png](img_2.png)
 
-The simulations consume the query extracts and run them against the AtScale Engine.  They produce results in the form of Gatling HTML reports and run_logs.
+The simulations consume the query extracts and run them against the AtScale Engine.  They produce results in the form of 
+Gatling HTML reports and run_logs.
 
-Query extract executors facilitate query extraction.  Simulation executors are designed to run simulations either sequentially or concurrently.  Generally, this is achieved by choosing a sequential or concurrent executor example and updating with configurations for your environment and models under test.
+Query extract executors facilitate query extraction. 
 
 ![img_7.png](img_7.png)
 
@@ -31,6 +32,31 @@ Query extract executors facilitate query extraction.  Simulation executors are d
 Alternatively, you can create your own query files and place them in the /ingest directory.
 
 ![img_8.png](img_8.png)
+
+Gatling Simulations are run via executors. Example executors include:
+1. OpenStepSequentialSimulationExecutor
+2. ClosedStepSequentialSimulationExecutor
+3. OpenStepConcurrentSimulationExecutor
+4. ClosedStepConcurrentSimulationExecutor
+
+Each of these executors contains a list of tasks.  When configuring tests our goal is to define the BI User Query load to run for a specific 
+AtScale Semantic Model. Task definitions put us in control.  A task is where we specify which model to run and whether to run against the AtScale XMLA or JDBC endpoint.
+A task is also where we define the Gatling injection steps that shape both the user load and the test duration.
+
+Sequential executors run tasks one after the other.  
+
+Concurrent executors run tasks in parallel on separate JVMs.  This is the most powerful way to simulate user load on the 
+AtScale Engine. Since concurrent executors are able to simultaneously simulate real world BI user load across multiple semantic models 
+on both XMLA and JDBC endpoints we can declaratively shape tests to match current and future BI workloads.
+
+![img_10.png](img_10.png)
+
+That's a powerful capability. Imagine the confidence gained by knowing the critical semantic layer in your 
+organization can handle future spikes in BI user activity -- without having to write your own code or test suites.  
+
+However, if your goal is simply to run regression tests by executing each query once, we can do 
+that too using an openstep executor and defining a single user via AtOnceUsersOpenInjectionStep(1) in our task. 
+This project puts you in control.
 
 ### Quick Start
 Prerequisites should you choose to run this project:
@@ -182,12 +208,36 @@ For details refer to the pom.xml file and look for:  <artifactId>exec-maven-plug
 
 If run successfully, there will be two files created in the directory /queries for each model defined in the atscale.models property.  One file contains the queries executed against the JDBC endpoint.  The other file contains the queries executed against the XMLA endpoint.
 
+When extracting queries default system behaviors include:
+1. Fetching inbound queries that ran during the last 60 days.  These are the queries from BI Tools.
+2. Fetching queries that ran successfully.
+3. Aggregating queries to eliminate duplicates.
+4. Calculating the number of times each query was run using a group by statement.
+5. Fetching one of the unique AtScaleQueryIds from the group so that we can trace back via the AtScale UI.
+
+>>Note:
+The AtScaleQueryId is a unique identifier assigned by AtScale to each query executed against the AtScale Engine.  This identifier 
+is logged throughout the test harness. AtScale provides integrations using industry standard protocols such as JDBC. The AtScaleQueryId related to 
+a specific query execution at test time is not logged, as the protocols do not support passing this information back to this test harness.
+However, the extracted AtScaleQueryId can be used to understand which query was harvested and trace that query back via the AtScale UI for additional analysis.
+
 ### Or Create Query Extract Files in the ingest directory
-If you do not want to extract queries from the AtScale database, you can create your own query extract files in the /ingest directory.  The files can be named anything you want.  They must have two columns separated by a comma.  The first column is the query name that will show up on the Gatling reports.  The second column is the query text.  For examples refer to the sample files in the /ingest directory.  If you choose to run your own query extract files, when defining executor tasks, simply indicate which file to use in your task definition.  For example:
+If you do not want to extract queries from the AtScale database, you can create your own query extract files in the /ingest directory.  The files can be named anything you want.  They can have two or three columns separated by a comma.  
+
+Two column format:
+The first column is the query name that will show up on the Gatling reports.  The second column is the query text.  
+
+Three column format:
+The first column is the query name that will show up on the Gatling reports.  The second column is intended to be the AtScaleQueryId, but it could be repurposed as simply a unique query identifier of your choosing.  The third column is the query text.
+
+For examples refer to the sample files in the /ingest directory.  
+
+If you choose to run your own query extract files, when defining executor tasks, simply indicate which file to use in your task definition.  For example:
+
 ```
 task.setIngestionFileName("tpcds_benchmark_jdbc_queries.csv", false);
 ```
-Use true or false to indicate whether the file has a reader row.   Headers can be named anything you choose.  We simply skip the first row if the file has a header.
+Use true or false to indicate whether the file has a reader row.   Headers can be named anything you choose.  When reading the software simply skips the first row if the file has a header.
 
 
 ## Run Simulations
