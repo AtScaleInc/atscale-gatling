@@ -29,7 +29,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
         }
         LOGGER.info("ArchiveJdbcToSnowflakeExecutor completed.");
         try{
-            Thread.sleep(java.time.Duration.ofSeconds(30).toMillis());
+            Thread.sleep(java.time.Duration.ofSeconds(10).toMillis());
         }catch(InterruptedException ie){
             Thread.currentThread().interrupt();
         }
@@ -258,6 +258,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
               GATLING_SESSION_ID NUMBER(38,0),
               MODEL VARCHAR(16777216),
               QUERY_NAME VARCHAR(16777216),
+              ATSCALE_QUERY_ID VARCHAR(256),
               QUERY_HASH VARCHAR(16777216),
               START_MS NUMBER(38,0),
               END_MS NUMBER(38,0),
@@ -276,23 +277,24 @@ public class ArchiveJdbcToSnowflakeExecutor {
             CREATE TABLE IF NOT EXISTS GATLING_SQL_DETAILS CLUSTER BY (GATLING_RUN_ID) (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
-              LEVEL VARCHAR(16777216),
-              LOGGER VARCHAR(16777216),
-              MESSAGE_KIND VARCHAR(16777216),
-              GATLING_RUN_ID VARCHAR(16777216),
-              STATUS VARCHAR(16777216),
+              LEVEL VARCHAR(30),
+              LOGGER VARCHAR(100),
+              MESSAGE_KIND VARCHAR(100),
+              GATLING_RUN_ID VARCHAR(256),
+              STATUS VARCHAR(30),
               GATLING_SESSION_ID NUMBER(38,0),
-              MODEL VARCHAR(16777216),
-              QUERY_NAME VARCHAR(16777216),
-              QUERY_HASH VARCHAR(16777216),
+              MODEL VARCHAR(256),
+              QUERY_NAME VARCHAR(100),
+              ATSCALE_QUERY_ID VARCHAR(256),
+              QUERY_HASH VARCHAR(256),
               ROWNUMBER NUMBER(38,0),
               ROW_MAP_RAW VARCHAR(16777216),
-              ROW_HASH VARCHAR(16777216),
+              ROW_HASH VARCHAR(1024),
               START_MS NUMBER(38,0),
               END_MS NUMBER(38,0),
               DURATION_MS NUMBER(38,0),
               ROWS_RETURNED NUMBER(38,0),
-              SRC_FILENAME VARCHAR(16777216),
+              SRC_FILENAME VARCHAR(250),
               SRC_ROW_NUMBER NUMBER(38,0),
               RAW_LINE VARCHAR(16777216)
             );
@@ -302,28 +304,29 @@ public class ArchiveJdbcToSnowflakeExecutor {
             CREATE TABLE IF NOT EXISTS GATLING_SQL_HEADERS CLUSTER BY (GATLING_RUN_ID) (
               RUN_KEY NUMBER(19,0),
               TS TIMESTAMP_NTZ(9),
-              LEVEL VARCHAR(16777216),
-              LOGGER VARCHAR(16777216),
-              MESSAGE_KIND VARCHAR(16777216),
-              GATLING_RUN_ID VARCHAR(16777216),
-              STATUS VARCHAR(16777216),
+              LEVEL VARCHAR(30),
+              LOGGER VARCHAR(100),
+              MESSAGE_KIND VARCHAR(100),
+              GATLING_RUN_ID VARCHAR(256),
+              STATUS VARCHAR(30),
               GATLING_SESSION_ID NUMBER(38,0),
-              MODEL VARCHAR(16777216),
-              QUERY_NAME VARCHAR(16777216),
-              QUERY_HASH VARCHAR(16777216),
+              MODEL VARCHAR(256),
+              QUERY_NAME VARCHAR(100),
+              ATSCALE_QUERY_ID VARCHAR(256),
+              QUERY_HASH VARCHAR(256),
               START_MS NUMBER(38,0),
               END_MS NUMBER(38,0),
               DURATION_MS NUMBER(38,0),
               ROWS_RETURNED NUMBER(38,0),
-              SRC_FILENAME VARCHAR(16777216),
+              SRC_FILENAME VARCHAR(250),
               SRC_ROW_NUMBER NUMBER(38,0),
               RAW_LINE VARCHAR(16777216)
             );
             """);
 
         exec(conn, """
-            CREATE OR REPLACE VIEW V_GATLING_JOINED AS
-            SELECT
+                CREATE OR REPLACE VIEW V_GATLING_JOINED AS
+                SELECT
                 h.run_key,
                 TRIM(SPLIT_PART(h.gatling_run_id, '|', 1)) AS test_name,
                 TRY_TO_NUMBER(REGEXP_SUBSTR(SPLIT_PART(h.gatling_run_id, '|', 2), '[0-9]+')) AS concurrent_users,
@@ -337,6 +340,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 h.gatling_session_id,
                 h.model,
                 h.query_name,
+                h.atscale_query_id,
                 h.query_hash,
                 h.start_ms AS header_start_ms,
                 h.end_ms AS header_end_ms,
@@ -435,41 +439,42 @@ public class ArchiveJdbcToSnowflakeExecutor {
         return String.format("""
             INSERT INTO GATLING_SQL_LOGS (
                 TS, LEVEL, LOGGER, MESSAGE_KIND, GATLING_RUN_ID, STATUS,
-                GATLING_SESSION_ID, MODEL, QUERY_NAME, QUERY_HASH,
+                GATLING_SESSION_ID, MODEL, QUERY_NAME, ATSCALE_QUERY_ID, QUERY_HASH,
                 START_MS, END_MS, DURATION_MS, ROWS_RETURNED,
                 ROWNUMBER, ROW_MAP_RAW, ROW_HASH,
                 SRC_FILENAME, SRC_ROW_NUMBER, RAW_LINE
             )
             SELECT
                 /* ts */
-                to_timestamp_ntz(regexp_substr(raw_line, '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}'))                                       as ts,
+                to_timestamp_ntz(regexp_substr(raw_line, '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}')) as ts,
 
                 /* level */
-                regexp_substr(raw_line, '^[^ ]+ [^ ]+ ([A-Z]+)', 1, 1, 'e', 1)                                                                           as level,
+                regexp_substr(raw_line, '^[^ ]+ [^ ]+ ([A-Z]+)', 1, 1, 'e', 1) as level,
 
                 /* logger (single cleaned value) */
-                regexp_replace(regexp_substr(raw_line, ' [A-Za-z0-9_\\\\.]+:', 1, 1), '[: ]', '')                                                          as logger,
+                regexp_replace(regexp_substr(raw_line, ' [A-Za-z0-9_\\\\.]+:', 1, 1), '[: ]', '') as logger,
 
                 /* message_kind */
-                regexp_substr(raw_line, '- ([A-Za-z0-9_]+)', 1, 1, 'e', 1)                                                                               as message_kind,
+                regexp_substr(raw_line, '- ([A-Za-z0-9_]+)', 1, 1, 'e', 1) as message_kind,
 
                 /* key/value pairs */
-                regexp_substr(raw_line, 'gatlingRunId=''([^'']*)''', 1, 1, 'e', 1)                                                                       as gatling_run_id,
-                regexp_substr(raw_line, 'status=''([^'']*)''', 1, 1, 'e', 1)                                                                       as status,
-                try_to_number(regexp_substr(raw_line, 'gatlingSessionId=([0-9]+)', 1, 1, 'e', 1))                                                        as gatling_session_id,
-                regexp_substr(raw_line, 'model=''([^'']*)''', 1, 1, 'e', 1)                                                                              as model,
-                regexp_substr(raw_line, 'queryName=''([^'']*)''', 1, 1, 'e', 1)                                                                          as query_name,
-                regexp_substr(raw_line, 'inboundTextAsMd5Hash=''([^'']*)''', 1, 1, 'e', 1)                                                                          as query_hash,
+                regexp_substr(raw_line, 'gatlingRunId=''([^'']*)''', 1, 1, 'e', 1) as gatling_run_id,
+                regexp_substr(raw_line, 'status=''([^'']*)''', 1, 1, 'e', 1) as status,
+                try_to_number(regexp_substr(raw_line, 'gatlingSessionId=([0-9]+)', 1, 1, 'e', 1)) as gatling_session_id,
+                regexp_substr(raw_line, 'model=''([^'']*)''', 1, 1, 'e', 1) as model,
+                regexp_substr(raw_line, 'queryName=''([^'']*)''', 1, 1, 'e', 1)  as query_name,
+                regexp_substr(raw_line, 'atscaleQueryId=''([^'']*)''', 1, 1, 'e', 1)  as atscale_query_id,                                                           
+                regexp_substr(raw_line, 'inboundTextAsHash=''([^'']*)''', 1, 1, 'e', 1) as query_hash,
 
-                try_to_number(regexp_substr(raw_line, 'start=([0-9]+)',    1, 1, 'e', 1))                                                                as start_ms,
-                try_to_number(regexp_substr(raw_line, 'end=([0-9]+)',      1, 1, 'e', 1))                                                                as end_ms,
-                try_to_number(regexp_substr(raw_line, 'duration=([0-9]+)', 1, 1, 'e', 1))                                                                as duration_ms,
-                try_to_number(regexp_substr(raw_line, 'rows=([0-9]+)',     1, 1, 'e', 1))                                                                as rows_returned,
+                try_to_number(regexp_substr(raw_line, 'start=([0-9]+)',    1, 1, 'e', 1)) as start_ms,
+                try_to_number(regexp_substr(raw_line, 'end=([0-9]+)',      1, 1, 'e', 1)) as end_ms,
+                try_to_number(regexp_substr(raw_line, 'duration=([0-9]+)', 1, 1, 'e', 1)) as duration_ms,
+                try_to_number(regexp_substr(raw_line, 'rows=([0-9]+)',     1, 1, 'e', 1)) as rows_returned,
 
                 /* optional fields */
-                try_to_number(regexp_substr(raw_line, 'rownumber=([0-9]+)', 1, 1, 'e', 1))                                                               as rownumber,
-                regexp_substr(raw_line, 'row=Map\\\\((.*?)\\\\)', 1, 1, 'e', 1)                                                                              as row_map_raw,
-                regexp_substr(raw_line, 'rowhash=([a-f0-9]+)', 1, 1, 'e', 1)                                                                             as row_hash,
+                try_to_number(regexp_substr(raw_line, 'rownumber=([0-9]+)', 1, 1, 'e', 1)) as rownumber,
+                regexp_substr(raw_line, 'row=Map\\\\((.*?)\\\\)', 1, 1, 'e', 1) as row_map_raw,
+                regexp_substr(raw_line, 'rowhash=([a-f0-9]+)', 1, 1, 'e', 1)  as row_hash,
 
                 /* lineage + raw */
                 src_filename,
@@ -502,6 +507,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 gatling_session_id,
                 model,
                 query_name,
+                atscale_query_id,
                 query_hash,
                 start_ms,
                 end_ms,
@@ -540,6 +546,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 gatling_session_id,
                 model,
                 query_name,
+                atscale_query_id,
                 query_hash,
 
                 /* detail-specific fields */
