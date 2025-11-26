@@ -423,7 +423,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     QUERY_HASH,
                     XMLGET(PARSE_XML(RAW_SOAP),'soap:Header') AS SOAP_HEADER,
                     MODIFIED_SOAP_BODY_STR::VARIANT AS SOAP_BODY, -- Use the pre-calculated string, cast to VARIANT
-                    HASH(MODIFIED_SOAP_BODY_STR) AS SOAP_BODY_HASH -- Hash the pre-calculated string
+                    SHA2(MODIFIED_SOAP_BODY_STR, 256) AS SOAP_BODY_HASH -- Hash the pre-calculated string
                 FROM
                     ModifiedSoap;
                """;
