@@ -307,7 +307,7 @@
     </dependencyManagement>
     <dependencies>
         <dependency>
-            <groupId>com.atscale.gatling</groupId>
+            <groupId>com.atscale.opensource</groupId>
             <artifactId>atscale-gatling-core</artifactId>
             <version>${atscale.gatling.core.version}</version>
         </dependency>
