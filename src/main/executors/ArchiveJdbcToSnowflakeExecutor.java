@@ -217,6 +217,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to execute Snowflake operations", e);
         }
+        LOGGER.info("Processed {} unique JDBC RUN IDs in log file {}:: {}.", runIds.size(), dataFile, runIds);
     }
 
     /** Create all tables, view, stage, and file format if not already present. */

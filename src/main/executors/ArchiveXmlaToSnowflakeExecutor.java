@@ -178,6 +178,8 @@ public class ArchiveXmlaToSnowflakeExecutor {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to execute Snowflake operations", e);
         }
+        LOGGER.info("Processed {} XMLA RUN IDs in log file {}:: {}.", runIds.size(), dataFile, runIds);
+
     }
 
     /** Create stage, file format, and XMLA tables. */
@@ -250,7 +252,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
               RESPONSE_HASH VARCHAR(256),
               SOAP_HEADER VARIANT,
               SOAP_BODY VARIANT,
-              SOAP_RESPONSE_HASH VARCHAR(256),
+              SOAP_BODY_HASH VARCHAR(256),
               PRIMARY KEY (RUN_KEY)
             );
             """);
@@ -401,7 +403,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     RESPONSE_HASH,
                     SOAP_HEADER,
                     SOAP_BODY,
-                    SOAP_RESPONSE_HASH
+                    SOAP_BODY_HASH
                 )
                 with modified_soap as (
                 SELECT
