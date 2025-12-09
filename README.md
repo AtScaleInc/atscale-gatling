@@ -132,10 +132,18 @@ atscale.xmla.useAggregateCache=true
 atscale.jdbc.useAggregates=true
 atscale.jdbc.generateAggregates=false
 atscale.jdbc.useQueryCache=false
+atscale.model.redactRawdata=true
 ```
-atscale.gatling.throttle.ms -- Introduces a pause between queries to avoid overwhelming the AtScale Engine.  The value is in milliseconds.
+atscale.gatling.throttle.ms -- Introduces a pause between queries to avoid overwhelming the AtScale Engine.  The value is 
+in milliseconds.
 
-atscale.xmla.maxConnectionsPerHost -- The maximum number of connections to the AtScale XMLA endpoint.  This value should be tuned based on the expected user load.
+atscale.xmla.maxConnectionsPerHost -- The maximum number of connections to the AtScale XMLA endpoint.  This value should 
+be tuned based on the expected user load.
+
+atscale.model.redactRawdata -- Applied for data confidentiality.  When set to true, any raw data values in the query 
+results will be redacted in the logs.  A SHA256 hash of the data will be available.  The hash may be useful to compare 
+the data between runs.   This is set per model and affects both XMLA and JDBC endpoints.  Replace model with the name of
+your model using the same model naming conventing used for other model specific properties.
 
 Default values
 ```
@@ -145,6 +153,7 @@ atscale.xmla.useAggregates=true
 atscale.xmla.generateAggregates=false
 atscale.xmla.useQueryCache=false
 atscale.xmla.useAggregateCache=true
+atscale.model.redactRawdata=true
 ```
 
 Maven
@@ -341,6 +350,15 @@ RampConcurrentUsersClosedInjectionStep: Starts with a specified number of users 
 ## Troubleshooting
 The application provides extensive logging.  First place to look is in the app_logs/application.log file
 Additional logging can be enabled by changing level="info" to level="debug" in the src/main/resources/log4j2.xml file
+
+Gatling uses the AKKA Actor model to manage concurrency.  By default, exceptions are not marshalled from the Actors back
+to the main application.log.  To enable that functionality, modify the log4j2.xml file set logging level to debug.
+``` 
+    <Logger name="io.gatling" level="debug" additivity="false"> 
+      <AppenderRef ref="STDOUT"/>                             
+      <AppenderRef ref="ASYNC_APP_LOG"/>                      
+    </Logger>                                                      
+```
 
 
 ## Managing Secrets

@@ -473,7 +473,10 @@ public class ArchiveJdbcToSnowflakeExecutor {
 
                 /* optional fields */
                 try_to_number(regexp_substr(raw_line, 'rownumber=([0-9]+)', 1, 1, 'e', 1)) as rownumber,
-                regexp_substr(raw_line, 'row=Map\\\\((.*?)\\\\)', 1, 1, 'e', 1) as row_map_raw,
+                COALESCE(
+                    regexp_substr(raw_line, 'row=Map\\\\(([^)]*)\\\\)', 1, 1, 'e', 1),
+                    regexp_substr(raw_line, 'row=\\\\{([^}]*)\\\\}', 1, 1, 'e', 1)
+                ) as row_map_raw,
                 regexp_substr(raw_line, 'rowhash=([a-f0-9]+)', 1, 1, 'e', 1)  as row_hash,
 
                 /* lineage + raw */

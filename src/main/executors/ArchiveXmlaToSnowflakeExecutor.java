@@ -145,6 +145,9 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     LOGGER.info("Inserted response rows into gatling_xmla_responses");
                 }
 
+
+
+
                 // cleanup staged file
                 try {
                     exec(conn, "REMOVE @" + STAGE + "/" + stagedFileName);
@@ -226,6 +229,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
               END_MS NUMBER(38,0),
               DURATION_MS NUMBER(38,0),
               RESPONSE_SIZE NUMBER(38,0),
+              RESPONSE_HASH VARCHAR(256),
               RAW_SOAP VARCHAR(16777216),
               PRIMARY KEY (RUN_KEY)
             );
@@ -243,9 +247,10 @@ public class ArchiveXmlaToSnowflakeExecutor {
               QUERY_NAME VARCHAR(1024),
               ATSCALE_QUERY_ID VARCHAR(256),
               QUERY_HASH VARCHAR(256),
+              RESPONSE_HASH VARCHAR(256),
               SOAP_HEADER VARIANT,
               SOAP_BODY VARIANT,
-              SOAP_BODY_HASH VARCHAR(256),
+              SOAP_RESPONSE_HASH VARCHAR(256),
               PRIMARY KEY (RUN_KEY)
             );
             """);
@@ -300,6 +305,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     END_MS,
                     DURATION_MS,
                     RESPONSE_SIZE,
+                    RESPONSE_HASH,
                     RAW_SOAP
                 )
                 -- Start of the Common Table Expression definition
@@ -331,8 +337,12 @@ public class ArchiveXmlaToSnowflakeExecutor {
                         regexp_substr(raw_soap, 'end=([^\\\\s]+)', 1, 1, 'e', 1) AS END_MS,
                         regexp_substr(raw_soap, 'duration=([^\\\\s]+)', 1, 1, 'e', 1) AS DURATION_MS,
                         regexp_substr(raw_soap, 'responseSize=([^\\\\s]+)', 1, 1, 'e', 1) AS RESPONSE_SIZE,
+                        regexp_substr(raw_soap, 'responseHash=\\'([^\\']+)\\'', 1, 1, 'e', 1) AS RESPONSE_HASH,
                          -- Extract the full XML content starting from '<soap:Envelope'
-                        regexp_substr(raw_soap, '<soap:Envelope.*</soap:Envelope>', 1, 1, 's') AS RAW_SOAP
+                          COALESCE(
+                             NULLIF(regexp_substr(raw_soap, '<soap:Envelope.*</soap:Envelope>', 1, 1, 's'), ''),
+                             regexp_substr(raw_soap, 'response=''([^'']*)''', 1, 1, 'e', 1)
+                         ) AS RAW_SOAP
                     FROM
                         GATLING_RAW_XMLA_LOGS AS UPLOAD
                     WHERE
@@ -364,6 +374,7 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     END_MS,
                     DURATION_MS,
                     RESPONSE_SIZE,
+                    RESPONSE_HASH,
                     RAW_SOAP
                 FROM
                     ParsedData
@@ -375,8 +386,8 @@ public class ArchiveXmlaToSnowflakeExecutor {
     /** Insert a single response per query: pick first response row per query using ROW_NUMBER() */
     private static String getInsertIntoResponsesSql() {
         return """
-               -- QUERY TO INSERT INTO XMLA_RESPONSES
-               INSERT INTO GATLING_XMLA_RESPONSES (
+                 -- QUERY TO INSERT INTO XMLA_RESPONSES
+                INSERT INTO GATLING_XMLA_RESPONSES (
                     RUN_KEY,
                     GATLING_RUN_ID,
                     STATUS,
@@ -387,22 +398,26 @@ public class ArchiveXmlaToSnowflakeExecutor {
                     QUERY_NAME,
                     ATSCALE_QUERY_ID,
                     QUERY_HASH,
+                    RESPONSE_HASH,
                     SOAP_HEADER,
                     SOAP_BODY,
-                    SOAP_BODY_HASH -- New column
+                    SOAP_RESPONSE_HASH
                 )
-                WITH ModifiedSoap AS (
-                    SELECT
-                        *,
-                        -- Calculate the modified SOAP body as a string once
-                        REGEXP_REPLACE(
-                          XMLGET(PARSE_XML(RAW_SOAP), 'soap:Body')::VARCHAR,
-                          '<LastDataUpdate.*?>[^<]*</LastDataUpdate>',
-                          '<LastDataUpdate>0</LastDataUpdate>'
-                        ) AS MODIFIED_SOAP_BODY_STR
+                with modified_soap as (
+                SELECT
+                *,
+                -- Calculate the modified SOAP body as a string once
+                IFF(
+                  REGEXP_LIKE(TRIM(RAW_SOAP), '^REDACTED$'),'REDACTED',
+                  REGEXP_REPLACE(
+                    XMLGET(PARSE_XML(RAW_SOAP), 'soap:Body')::VARIANT,
+                    '<LastDataUpdate.*?>[^<]*</LastDataUpdate>',
+                    '<LastDataUpdate>0</LastDataUpdate>'
+                  )
+                ) AS MODIFIED_SOAP_BODY_STR
                     FROM
-                        GATLING_XMLA_HEADERS
-                    WHERE
+                    GATLING_XMLA_HEADERS
+                     WHERE
                         GATLING_RUN_ID = ?
                         AND NOT EXISTS (
                               select gatling_run_id from gatling_xmla_responses
@@ -410,22 +425,19 @@ public class ArchiveXmlaToSnowflakeExecutor {
                               limit 1
                          )
                     )
-                SELECT
-                    RUN_KEY,
-                    GATLING_RUN_ID,
-                    STATUS,
-                    GATLING_SESSION_ID,
-                    MODEL,
-                    CUBE,
-                    CATALOG,
-                    QUERY_NAME,
-                    ATSCALE_QUERY_ID,
-                    QUERY_HASH,
-                    XMLGET(PARSE_XML(RAW_SOAP),'soap:Header') AS SOAP_HEADER,
-                    MODIFIED_SOAP_BODY_STR::VARIANT AS SOAP_BODY, -- Use the pre-calculated string, cast to VARIANT
-                    SHA2(MODIFIED_SOAP_BODY_STR, 256) AS SOAP_BODY_HASH -- Hash the pre-calculated string
-                FROM
-                    ModifiedSoap;
+                    select
+                    RUN_KEY, GATLING_RUN_ID, STATUS, GATLING_SESSION_ID, MODEL,
+                    CUBE, CATALOG, QUERY_NAME, ATSCALE_QUERY_ID, QUERY_HASH, RESPONSE_HASH,
+                    IFF(
+                        REGEXP_LIKE(TRIM(RAW_SOAP), '^REDACTED$'), 'REDACTED'::VARIANT,
+                        XMLGET(PARSE_XML(RAW_SOAP),'soap:Header')
+                        )AS SOAP_HEADER,
+                        MODIFIED_SOAP_BODY_STR::VARIANT AS SOAP_BODY,
+                    IFF (
+                     REGEXP_LIKE(TRIM(MODIFIED_SOAP_BODY_STR), '^REDACTED$'), 'REDACTED'::VARIANT,
+                     HASH(MODIFIED_SOAP_BODY_STR) -- Hash the pre-calculated string
+                    ) AS SOAP_BODY_HASH
+                    from modified_soap
                """;
     }
 
