@@ -143,7 +143,7 @@ be tuned based on the expected user load.
 atscale.model.redactRawdata -- Applied for data confidentiality.  When set to true, any raw data values in the query 
 results will be redacted in the logs.  A SHA256 hash of the data will be available.  The hash may be useful to compare 
 the data between runs.   This is set per model and affects both XMLA and JDBC endpoints.  Replace model with the name of
-your model using the same model naming conventing used for other model specific properties.
+your model using the same model naming convention used for other model specific properties.
 
 Default values
 ```
