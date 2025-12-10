@@ -464,7 +464,7 @@ public class ArchiveJdbcToSnowflakeExecutor {
                 try_to_number(regexp_substr(raw_line, 'gatlingSessionId=([0-9]+)', 1, 1, 'e', 1)) as gatling_session_id,
                 regexp_substr(raw_line, 'model=''([^'']*)''', 1, 1, 'e', 1) as model,
                 regexp_substr(raw_line, 'queryName=''([^'']*)''', 1, 1, 'e', 1)  as query_name,
-                regexp_substr(raw_line, 'atscaleQueryId=''([^'']*)''', 1, 1, 'e', 1)  as atscale_query_id,                                                           
+                regexp_substr(raw_line, 'atscaleQueryId=''([^'']*)''', 1, 1, 'e', 1)  as atscale_query_id,
                 regexp_substr(raw_line, 'inboundTextAsHash=''([^'']*)''', 1, 1, 'e', 1) as query_hash,
 
                 try_to_number(regexp_substr(raw_line, 'start=([0-9]+)',    1, 1, 'e', 1)) as start_ms,
