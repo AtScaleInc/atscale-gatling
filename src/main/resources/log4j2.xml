@@ -6,11 +6,11 @@
     </Properties>
     <Appenders>
         <Console name="STDOUT" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m %n"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %replace{%m}{(.{2000,})}{[...PAYLOAD TRUNCATED...]}%n%throwable"/>
         </Console>
         <RollingFile name="APP_LOG" fileName="app_logs/application.log"
                      filePattern="app_logs/application-%d{yyyy-MM-dd}.%i.log">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m %n"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %replace{%m}{(.{2000,})}{[...PAYLOAD TRUNCATED...]}%n%throwable"/>
             <Policies>
                 <TimeBasedTriggeringPolicy interval="1"/>
                 <SizeBasedTriggeringPolicy size="10MB"/>
@@ -47,8 +47,10 @@
             -->
             <AppenderRef ref="ASYNC_APP_LOG"/>
         </Root>
-        <Logger name="io.gatling" level="error">
+        <Logger name="io.gatling" level="debug" additivity="false">
+            <!-- commented out to avoid console logging
             <AppenderRef ref="STDOUT"/>
+            -->
             <AppenderRef ref="ASYNC_APP_LOG"/>
         </Logger>
         <Logger name="SqlLogger" level="info" additivity="false">
