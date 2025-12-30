@@ -381,6 +381,16 @@ public class ArchiveJdbcToSnowflakeExecutor {
         String schema = PropertiesManager.getCustomProperty("snowflake.archive.schema");
         String role = null;
 
+        String privateKeyFile = null;
+        String privateKeyPwd = null;
+
+        try {
+            privateKeyFile = PropertiesManager.getCustomProperty("snowflake.archive.keyfile.path");
+            privateKeyPwd = PropertiesManager.getCustomProperty("snowflake.archive.keyfile.password");
+        } catch (Exception e) {
+            LOGGER.warn("No private key file or password values found for properties snowflake.archive.keyfile.path or snowflake.archive.keyfile.password.", e);
+        }
+
         if (PropertiesManager.hasProperty("snowflake.archive.role")) {
             role = PropertiesManager.getCustomProperty("snowflake.archive.role");
         }
@@ -395,6 +405,9 @@ public class ArchiveJdbcToSnowflakeExecutor {
         props.put("warehouse", warehouse);
         props.put("db", database);
         props.put("schema", schema);
+        if (privateKeyFile != null) props.put("private_key_file", privateKeyFile);
+        if (privateKeyPwd != null) props.put("private_key_file_pwd", privateKeyPwd);
+
         if (StringUtils.isNotBlank(role)) {
             props.put("role", role);
         }
