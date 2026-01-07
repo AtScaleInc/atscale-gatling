@@ -39,9 +39,22 @@ Gatling Simulations are run via executors. Example executors include:
 3. OpenStepConcurrentSimulationExecutor
 4. ClosedStepConcurrentSimulationExecutor
 
-Each of these executors contains a list of tasks.  When configuring tests our goal is to define the BI User Query load to run for a specific 
-AtScale Semantic Model. Task definitions put us in control.  A task is where we specify which model to run and whether to run against the AtScale XMLA or JDBC endpoint.
-A task is also where we define the Gatling injection steps that shape both the user load and the test duration.
+Understanding Tasks and Executors:
+
+Each of these executors contains a list of tasks.  When configuring tests our goal is to define the BI User Query load 
+to run for a specific AtScale Semantic Model. Task definitions put us in control.  A task is where we specify which model 
+to run and whether to run against the AtScale XMLA or JDBC endpoint. A task is also where we define the sequence of queries 
+that define our simulation and the Gatling injection steps that shape both the user load and the test duration.
+
+Specifically, in Gatling users typically define a scenario.  A scenario is a sequence of steps.  We have abstracted the 
+Gatling Simulation and Gatling Scenario, making it declarative via a task definition.  However, the Gatling scenario still 
+governs our test behavior.  The atscale-gatling framework maps each query to a gatling scenario step.  It runs each query
+sequentially as part of the scenario. This makes it possible to run a set of queries against AtScale for a specific model.  
+It also empowers users to define a BI User journey step by step, such as a user drilling down into data, slicing and dicing,
+or filtering data. 
+
+Let's differentiate what happens within a task versus what happens across tasks.  Executors provide choice to run tasks
+either sequentially or concurrently.
 
 Sequential executors run tasks one after the other.  
 

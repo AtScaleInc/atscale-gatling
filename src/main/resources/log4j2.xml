@@ -10,7 +10,7 @@
         </Console>
         <RollingFile name="APP_LOG" fileName="app_logs/application.log"
                      filePattern="app_logs/application-%d{yyyy-MM-dd}.%i.log">
-            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %replace{%m}{(.{2000,})}{[...PAYLOAD TRUNCATED...]}%n%throwable"/>
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %replace{%m}{^(.{2000}).*}{$1 [...PAYLOAD TRUNCATED...]}%n%throwable"/>
             <Policies>
                 <TimeBasedTriggeringPolicy interval="1"/>
                 <SizeBasedTriggeringPolicy size="10MB"/>

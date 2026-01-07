@@ -30,7 +30,8 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
 
         List<OpenStep> t3InjectionSteps = new ArrayList<>();
         t3InjectionSteps.add(new AtOnceUsersOpenInjectionStep(1));
-        //t3InjectionSteps.add(new RampUsersPerSecOpenInjectionStep(1, 5, 1));
+        //t3InjectionSteps.add(new com.atscale.java.injectionsteps.RampUsersPerSecOpenInjectionStep(1, 3, 1));
+        //t3InjectionSteps.add(new com.atscale.java.injectionsteps.RampUsersOpenInjectionStep(10, 2));
 
         List<OpenStep> atOnceInjectionSteps = new ArrayList<>();
         atOnceInjectionSteps.add(new AtOnceUsersOpenInjectionStep(1));
@@ -61,10 +62,12 @@ public class OpenStepSequentialSimulationExecutor extends SequentialSimulationEx
         tasks.add(task3);
         task3.setMavenCommand("gatling:test");
         task3.setRunLogFileName("tpcds_benchmark_jdbc.log");
+        task3.setLoggingAsAppend(true);
         task3.setSimulationClass("com.atscale.java.jdbc.simulations.AtScaleOpenInjectionStepSimulation");
         task3.setRunDescription("TPCDS JDBC Model Tests");
         task3.setModel("tpcds_benchmark_model");
         task3.setInjectionSteps(t3InjectionSteps);
+        task3.setIngestionFileName("tpcds_benchmark_jdbc_queries.csv", true);
         
         // Two example tasks for the Installer Version. Exclude by removing tasks.add as needed.
         MavenTaskDto<OpenStep> task4 = new MavenTaskDto<>("Installer TPC-DS JDBC Simulation");
