@@ -20,7 +20,7 @@
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
         <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
         <log4j2.version>2.25.3</log4j2.version>
-        <atscale.gatling.core.version>1.13</atscale.gatling.core.version>
+        <atscale.gatling.core.version>1.14</atscale.gatling.core.version>
     </properties>
     <build>
         <sourceDirectory>src/main</sourceDirectory>
@@ -107,6 +107,11 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.3.0</version>
+                <configuration>
+                    <!-- Run the Java executions in a forked JVM so the project's classpath is used
+                         (prevents exec plugin's custom classloader from missing log4j-core async classes). -->
+                    <fork>true</fork>
+                </configuration>
                 <executions>
                     <execution>
                         <id>query-extract</id>
@@ -276,7 +281,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.19.2</version>
+                <version>2.21.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>2.21.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -384,6 +394,17 @@
            <artifactId>slf4j-api</artifactId>
            <version>2.0.17</version>
        </dependency>
+        <!-- Ensure log4j-core is present on the application classpath (exec:java uses a custom classloader) -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <!-- make compile (default) so exec:java and IDE runs see it uniformly -->
+        </dependency>
+        <!-- SLF4J -> Log4j2 binding so slf4j-api logs use Log4j2 implementation at runtime -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+        </dependency>
         <!-- For Snowflake JDBC -->
         <dependency>
             <groupId>net.snowflake</groupId>
