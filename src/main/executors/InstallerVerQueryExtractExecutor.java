@@ -10,9 +10,30 @@ import java.util.List;
 
 
 public class InstallerVerQueryExtractExecutor {
+    // Disable Log4j's automatic shutdown hook early (must run before any LoggerContext initializes)
+    static {
+        System.setProperty("log4j.shutdownHookEnabled", "false");
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(InstallerVerQueryExtractExecutor.class);
 
     public static void main(String[] args) {
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(() -> {
+                    try { Class<?> ctxClass = Class.forName("org.apache.logging.log4j.core.LoggerContext");
+                        Object ctx = org.apache.logging.log4j.LogManager.getContext(false);
+                        if (ctxClass.isInstance(ctx)) {
+                            ((org.apache.logging.log4j.core.LoggerContext) ctx).stop();
+                        } else {
+                            org.apache.logging.log4j.LogManager.shutdown(); }
+                    } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                        // log4j-core not present in this classloader — nothing to do
+                    } catch (Throwable t) {
+                        // swallow to avoid throwing during shutdown
+                    } }
+                )
+        );
+
         InstallerVerQueryExtractExecutor executor = new InstallerVerQueryExtractExecutor();
         executor.initAdditionalProperties();
         executor.execute();
@@ -29,7 +50,7 @@ public class InstallerVerQueryExtractExecutor {
         }
 
         LOGGER.info("QueryExtractExecutor finished.");
-        org.apache.logging.log4j.LogManager.shutdown();
+        // Do NOT shut down Log4j here; the JVM shutdown hook will perform shutdown when the process exits.
     }
 
     private void cacheJdbcQueries(String model) {

@@ -9,9 +9,27 @@ import java.util.List;
 
 
 public class CustomQueryExtractExecutor {
+    static {
+        System.setProperty("log4j.shutdownHookEnabled", "false");
+    }
     private static final Logger LOGGER = LoggerFactory.getLogger(CustomQueryExtractExecutor.class);
 
     public static void main(String[] args) {
+        Runtime.getRuntime().addShutdownHook(
+            new Thread(() -> {
+                try { Class<?> ctxClass = Class.forName("org.apache.logging.log4j.core.LoggerContext");
+                    Object ctx = org.apache.logging.log4j.LogManager.getContext(false);
+                    if (ctxClass.isInstance(ctx)) {
+                        ((org.apache.logging.log4j.core.LoggerContext) ctx).stop();
+                    } else {
+                        org.apache.logging.log4j.LogManager.shutdown(); }
+                } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                    // log4j-core not present in this classloader — nothing to do
+                } catch (Throwable t) {
+                    // swallow to avoid throwing during shutdown
+                } }
+            )
+        );
         CustomQueryExtractExecutor executor = new CustomQueryExtractExecutor();
         executor.initAdditionalProperties();
         executor.execute();
@@ -29,7 +47,6 @@ public class CustomQueryExtractExecutor {
         cacheXmlaQueries("internet_sales");
 
         LOGGER.info("QueryExtractExecutor finished.");
-        org.apache.logging.log4j.LogManager.shutdown();
     }
 
     private void cacheJdbcQueries(String model) {
