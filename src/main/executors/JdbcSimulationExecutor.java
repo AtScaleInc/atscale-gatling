@@ -16,7 +16,7 @@ import java.util.*;
  * Uses the AtScaleClosedInjectionStepSimulation with constant concurrent users.
  *
  * <p>Configuration: Set the properties file via system property or systems.properties:</p>
- * <pre>-Datscale.closedsimulation.propertiesFile=my_config.properties</pre>
+ * <pre>-Datscale.profileFile=my_config.properties</pre>
  */
 public class JdbcSimulationExecutor extends SequentialSimulationExecutor<ClosedStep> {
     private static final Logger LOGGER = LoggerFactory.getLogger(JdbcSimulationExecutor.class);

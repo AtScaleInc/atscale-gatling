@@ -16,7 +16,7 @@ import java.util.*;
  * Uses the AtScaleXmlaClosedInjectionStepSimulation with constant concurrent users.
  *
  * <p>Configuration: Set the properties file via system property or systems.properties:</p>
- * <pre>-Datscale.closedsimulation.propertiesFile=my_config.properties</pre>
+ * <pre>-Datscale.profileFile=my_config.properties</pre>
  */
 public class XmlaSimulationExecutor extends SequentialSimulationExecutor<ClosedStep> {
     private static final Logger LOGGER = LoggerFactory.getLogger(XmlaSimulationExecutor.class);
