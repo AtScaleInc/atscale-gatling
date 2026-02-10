@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Properties;
 
 /**
@@ -31,6 +32,14 @@ public class ProfilePropertyLoader {
         this.propertiesFileName = propertiesFileName;
         this.profileProperties = loadProperties(propertiesFileName);
         LOGGER.info("Loaded properties from: {}", propertiesFileName);
+    }
+
+    public HashMap<String, String> getProfileProperties() {
+        HashMap<String, String> map = new HashMap<>();
+        for (String key : profileProperties.stringPropertyNames()) {
+            map.put(key, profileProperties.getProperty(key));
+        }
+        return map;
     }
 
     /**

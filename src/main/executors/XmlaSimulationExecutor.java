@@ -44,7 +44,7 @@ public class XmlaSimulationExecutor extends SequentialSimulationExecutor<ClosedS
         tasks.add(task);
         task.setMavenCommand("gatling:test");
         task.setModel(propertyLoader.getProperty("atscale.task.model"));
-        task.setAlternatePropertiesFileName(propertyLoader.getPropertiesFileName());
+        task.setAdditionalProperties(propertyLoader.getProfileProperties());
         task.setInjectionSteps(constantUsersInjectionSteps);
         task.setRunId(propertyLoader.getProperty("atscale.task.runId"));
         task.setRunLogFileName(propertyLoader.getProperty("atscale.task.runLogFileName"));
