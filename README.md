@@ -79,17 +79,6 @@ Prerequisites should you choose to run this project:
 
 ##### All commands should be run from the root directory of the project.
 
-Install Hive Driver
-
-MacOS or Linux Run this command
-```shell
-./mvnw -X install:install-file -Dfile=./lib/hive-jdbc-uber-2.6.3.0-235.jar -DpomFile=./lib/hive-jdbc-uber-2.6.3.0-235.pom
-```
-Windows Run this command
-```shell
-.\mvnw.cmd -X install:install-file -Dfile=".\lib\hive-jdbc-uber-2.6.3.0-235.jar"  -DpomFile=".\lib\hive-jdbc-uber-2.6.3.0-235.pom"
-```
-
 Configure systems.properties file
 
 To get started create a properties file named systems.properties in the src/main/resources directory.  The file should be modeled after the example_systems.properties file in the same directory.  The properties file should contain the following properties:
